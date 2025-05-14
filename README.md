@@ -1,4 +1,8 @@
+<<<<<<< Updated upstream
 # 🌲 Terraria Clone
+=======
+﻿# 🌲 Terraria Clone
+>>>>>>> Stashed changes
 A simple 2D game inspired by Terraria, currently being developed in C++.
 
 ## 🎮 Features
@@ -17,6 +21,14 @@ His tutorials and resources were extremely helpful in getting started — highly
 
 - 🧠 Full Source Code [SpaceGame - Full Game](https://github.com/meemknight/game-in-cpp-full-course)
 
+<<<<<<< Updated upstream
+=======
+## 🎮 Todo
+- Player inventory
+- background
+- world genration
+
+>>>>>>> Stashed changes
 ## 📌 Notes
 This is a work in progress, and I'm actively developing new features.
 Feel free to watch the repo or contribute ideas!
