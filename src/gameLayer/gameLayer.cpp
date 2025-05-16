@@ -7,10 +7,15 @@
 #include "imgui.h"
 #include <iostream>
 #include <vector>
+#include <cstdlib> // For rand()
+#include <ctime>   // For time()
 #include "imfilebrowser.h"
 #include <gl2d/gl2d.h>
 #include <platformTools.h>
 #include <blocks.h>
+
+using std::min;
+using std::max;
 
 struct GameplayData
 {
@@ -18,13 +23,105 @@ struct GameplayData
 	glm::vec2 velocity = { 0, 0 };
 	bool isOnGround = false;
 	const glm::vec2 size = { 50, 100 };		// Witdh, Height
+
 };
 
 GameplayData data;
 
 gl2d::Renderer2D renderer;
 
+//gl2d::Texture backgroundTexture;
+
 std::vector<Block> blocks;
+
+const int worldWidth = 200;
+const int worldHeight = 100;
+const glm::vec2 blockSize = { 50.0f, 50.0f };
+const float blockStartY = 200.0f;
+
+BlockType getRandomBlockType()
+{
+	int r = rand() % 3;
+	switch (r)
+	{
+	case 0: return BlockType::Grass;
+	case 1: return BlockType::Water;
+	default: return BlockType::Stone;
+	}
+}
+
+void generateRandomWorld()
+{
+	blocks.clear();
+
+	int baseGround = 4; // base ground layer
+	int maxHillHeight = 6;
+
+	// here i made a change : "random offset for more variety"
+	float randomOffset = static_cast<float>(rand() % 100);
+
+	// Generate a height map with sinusoidal hills and some noise
+	std::vector<int> heightMap(worldWidth);
+	for (int x = 0; x < worldWidth; ++x)
+	{
+		float hill = sinf((x + randomOffset) * 0.2f) * maxHillHeight; // hill shape
+		float noise = (rand() % 3 - 1); // -1, 0, or +1 random variation
+		int height = baseGround + static_cast<int>(hill + noise);
+		height = max(2, min(worldHeight - 5, height)); // clamp to avoid edge errors
+		heightMap[x] = height;
+	}
+
+	for (int x = 0; x < worldWidth; ++x)
+	{
+		int columnHeight = heightMap[x];
+		bool waterCandidate = (columnHeight <= baseGround + 1); // lowland
+
+		for (int y = 0; y < worldHeight; ++y)
+		{
+			glm::vec2 pos = {
+				x * blockSize.x,
+				blockStartY + (worldHeight - 1 - y) * blockSize.y
+			};
+
+			BlockType type;
+
+			if (y < columnHeight - 3)
+			{
+				// here i made a change : "random caves with noise-like pattern"
+				if ((x * y + rand() % 5) % 17 == 0)
+				{
+					continue; // cave
+				}
+				type = BlockType::Stone;
+			}
+			else if (y < columnHeight - 1)
+			{
+				type = BlockType::Stone;
+			}
+			else if (y == columnHeight - 1)
+			{
+				type = BlockType::Grass;
+			}
+			else
+			{
+				// Air or water above ground
+				if (waterCandidate && y <= baseGround + 2 && x > 0 && x < worldWidth - 1)
+				{
+					if (heightMap[x - 1] <= baseGround + 1 && heightMap[x + 1] <= baseGround + 1)
+					{
+						type = BlockType::Water;
+					}
+					else continue;
+				}
+				else continue;
+			}
+
+			Block b(pos, type);
+			b.size = blockSize;
+			blocks.push_back(b);
+		}
+	}
+}
 
 bool initGame()
 {
@@ -32,40 +129,10 @@ bool initGame()
 	renderer.create();
 
 
-	float blockStartY = 200.0f; // set starting height
-	glm::vec2 blockSize = { 50.0f, 50.0f }; // Easily adjustable block size
+	srand(static_cast<unsigned>(time(0))); // seed for random numbers
+	generateRandomWorld(); // generate the initial random world
 
-	std::vector<BlockType> outline = {
-		BlockType::Grass, BlockType::Water, BlockType::Water, BlockType::Water, BlockType::Grass, BlockType::Grass, BlockType::Grass,
-		BlockType::Stone, BlockType::Water, BlockType::Water, BlockType::Water, BlockType::Stone, BlockType::Stone, BlockType::Stone,
-		BlockType::Stone, BlockType::Stone, BlockType::Stone, BlockType::Stone, BlockType::Stone, BlockType::Stone, BlockType::Stone,
-		BlockType::Stone, BlockType::Stone, BlockType::Stone, BlockType::Stone, BlockType::Stone, BlockType::Stone, BlockType::Stone
-	};
-
-	int width = 7; // number of blocks per row
-	int height = 4;
-	//int height = static_cast<int>(outline.size()) / width;   // 2 layers.
-
-	// Clear any existing blocks
-	blocks.clear();
-
-	for (int y = 0; y < height; ++y)
-	{
-		for (int x = 0; x < width; ++x)
-		{
-			int index = y * width + x;
-			glm::vec2 pos = {
-				x * blockSize.x,
-				blockStartY + y * blockSize.y
-			};
-
-			Block b(pos, outline[index]);
-			b.size = blockSize; // set size of the block
-			blocks.push_back(b);
-		}
-	}
-
-
+	//backgroundTexture.loadFromFile(RESOURCES_PATH "background/forrestBGMain.png", true);
 	return true;
 }
 
@@ -79,6 +146,12 @@ bool gameLogic(float deltaTime)
 	glClear(GL_COLOR_BUFFER_BIT);
 	renderer.updateWindowMetrics(w, h);
 #pragma endregion
+
+	if (platform::isButtonPressedOn(platform::Button::G))
+	{
+		generateRandomWorld(); // regenerate random world on G key press
+	}
+
 
 #pragma region Movement
 	const float gravity = 500.0f;
@@ -112,6 +185,9 @@ bool gameLogic(float deltaTime)
 	data.playerPos += data.velocity * deltaTime;
 
 #pragma endregion
+
+
+
 
 #pragma region camera follow
 	glm::vec2 cameraTarget = data.playerPos + data.size * 0.5f;
