@@ -6,6 +6,7 @@ A simple 2D game inspired by Terraria, currently being developed in C++.
 - 🧱 Placeable and destructible block platforms
 - 🔨 Build and destroy mechanics
 - 🎥 Camera that follows the player
+- Clean up world genration (Perlin noise)
 
 ## 🚀 Setup
 This project uses meemknight's excellent C++ game development setup.
@@ -17,10 +18,12 @@ His tutorials and resources were extremely helpful in getting started — highly
 
 - 🧠 Full Source Code [SpaceGame - Full Game](https://github.com/meemknight/game-in-cpp-full-course)
 
-## 🎮 Todo
+## 📝 Todo
 - Player inventory
 - background
-- Clean up world genration (Perlin noise??)
+- Clean up world genration (fix water generation)
+- make structures
+- make enteties
 
 ## 📌 Notes
 This is a work in progress, and I'm actively developing new features.

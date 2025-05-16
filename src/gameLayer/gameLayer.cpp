@@ -50,6 +50,43 @@ BlockType getRandomBlockType()
 	}
 }
 
+// Simple 1D Perlin-like noise using smooth interpolation
+float lerp(float a, float b, float t) {
+	return a + t * (b - a);
+}
+
+float fade(float t) {
+	// Fade function improves smoothness
+	return t * t * t * (t * (t * 6 - 15) + 10);
+}
+
+float grad(int hash, float x) {
+	return (hash & 1) == 0 ? x : -x;
+}
+
+float perlin1D(float x) {
+	int xi = static_cast<int>(floor(x)) & 255;
+	float xf = x - floor(x);
+	float u = fade(xf);
+
+	static int p[512];
+	static bool initialized = false;
+	if (!initialized) {
+		for (int i = 0; i < 256; ++i) p[i] = i;
+		for (int i = 0; i < 256; ++i) {
+			int j = rand() % 256;
+			std::swap(p[i], p[j]);
+		}
+		for (int i = 0; i < 256; ++i) p[256 + i] = p[i];
+		initialized = true;
+	}
+
+	int aa = p[xi];
+	int ab = p[xi + 1];
+
+	return lerp(grad(aa, xf), grad(ab, xf - 1), u);
+}
+
 void generateRandomWorld()
 {
 	blocks.clear();
@@ -62,14 +99,15 @@ void generateRandomWorld()
 
 	// Generate a height map with sinusoidal hills and some noise
 	std::vector<int> heightMap(worldWidth);
+	float scale = 0.1f; // controls smoothness (lower = smoother)
 	for (int x = 0; x < worldWidth; ++x)
 	{
-		float hill = sinf((x + randomOffset) * 0.2f) * maxHillHeight; // hill shape
-		float noise = (rand() % 3 - 1); // -1, 0, or +1 random variation
-		int height = baseGround + static_cast<int>(hill + noise);
+		float noiseVal = perlin1D((x + randomOffset) * scale);
+		int height = baseGround + static_cast<int>((noiseVal + 1.0f) * 0.5f * maxHillHeight); // normalize from [-1,1] to [0,1]
 		height = max(2, min(worldHeight - 5, height)); // clamp to avoid edge errors
 		heightMap[x] = height;
 	}
+
 
 	for (int x = 0; x < worldWidth; ++x)
 	{
