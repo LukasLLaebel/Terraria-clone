@@ -31,9 +31,12 @@ GameplayData data;
 
 // Inventory structure and state
 constexpr int inventoryCols = 10;
-constexpr int inventoryRows = 4;
+constexpr int totalInventoryRows = 5; // total including top row
+constexpr int persistentTopRows = 1;
+constexpr int inventoryRows = totalInventoryRows - persistentTopRows; // for toggled section
 constexpr int slotSize = 50;
 constexpr int slotPadding = 4;
+int selectedSlot = 0; // 0–9 (top inventory row)
 
 bool inventoryOpen = false;
 
@@ -44,7 +47,7 @@ struct InventorySlot
 	int count = 0;
 };
 
-std::vector<InventorySlot> inventory(inventoryCols* inventoryRows);
+std::vector<InventorySlot> inventory(inventoryCols* totalInventoryRows);
 gl2d::Font font;
 gl2d::Renderer2D renderer;
 //gl2d::Texture backgroundTexture;
@@ -91,6 +94,20 @@ bool gameLogic(float deltaTime)
 	if (platform::isButtonPressedOn(platform::Button::Tab))
 	{
 		inventoryOpen = !inventoryOpen;
+	}
+
+
+	for (int i = 0; i < 9; ++i)
+	{
+		if (platform::isButtonPressedOn(platform::Button::NR1 + i % 9))
+		{
+			selectedSlot = i; // 0 to 8
+			break;
+		}
+		if (platform::isButtonPressedOn(platform::Button::NR0)) {
+			selectedSlot = 9;
+			break;
+		}
 	}
 
 #pragma region Movement
@@ -190,7 +207,20 @@ bool gameLogic(float deltaTime)
 		// Only add the block if no existing block was found
 		if (!exists)
 		{
-			blocks.emplace_back(snappedMouse, BlockType::Stone);
+			// Check selected slot for block to place
+			InventorySlot& slot = inventory[selectedSlot];
+
+			if (slot.occupied && slot.count > 0)
+			{
+				blocks.emplace_back(snappedMouse, static_cast<BlockType>(slot.itemID));
+				slot.count--;
+
+				if (slot.count <= 0)
+				{
+					slot.occupied = false;
+					slot.itemID = -1;
+				}
+			}
 		}
 	}
 
@@ -251,32 +281,76 @@ bool gameLogic(float deltaTime)
 	renderer.renderRectangle({ snappedMouse, 50, 50}, Colors_Red); // draws outline only
 
 
-	#pragma region UI
+#pragma region UI
 
-	// Render inventory UI
+	glm::vec2 fullInventorySize = glm::vec2(
+		inventoryCols * (slotSize + slotPadding) - slotPadding,
+		totalInventoryRows * (slotSize + slotPadding) - slotPadding
+	);
+
+	glm::vec2 startPos = renderer.currentCamera.position
+		+ glm::vec2(platform::getFrameBufferSizeX(), 0)
+		- glm::vec2(fullInventorySize.x, 0)
+		- glm::vec2(20, -20); // padding: right and top
+
+	// ---- Draw top (persistent) row ----
+	for (int col = 0; col < inventoryCols; ++col)
+	{
+		int index = col; // Top row is the first 'inventoryCols' slots
+		glm::vec2 pos = startPos + glm::vec2(col * (slotSize + slotPadding), 0);
+
+		renderer.renderRectangle({ pos, slotSize, slotSize }, Colors_Gray);
+		// Highlight selected slot
+		if (selectedSlot == col)
+		{
+			renderer.renderRectangleOutline({ pos, slotSize, slotSize }, Colors_Yellow, 3.0f); // outline with 3px thickness
+		}
+
+
+		if (inventory[index].occupied)
+		{
+			glm::vec4 color = Colors_White;
+			switch (static_cast<BlockType>(inventory[index].itemID))
+			{
+			case BlockType::Grass: color = Colors_Green; break;
+			case BlockType::Stone: color = Colors_Gray; break;
+			case BlockType::Water: color = Colors_Blue; break;
+			default: break;
+			}
+
+			renderer.renderRectangle({ pos + glm::vec2(8, 8), slotSize - 16, slotSize - 16 }, color);
+
+
+			if (inventory[index].count > 1)
+			{
+				char countText[8];
+				snprintf(countText, sizeof(countText), "%d", inventory[index].count);
+
+				renderer.renderText(
+					pos + glm::vec2(4, 4),
+					countText,
+					font,
+					Colors_White,
+					0.6f,
+					0.0f,
+					0.0f
+				);
+			}
+		}
+	}
+
+	// ---- Draw remaining inventory if open ----
 	if (inventoryOpen)
 	{
-		glm::vec2 inventorySize = glm::vec2(
-			inventoryCols * (slotSize + slotPadding) - slotPadding,
-			inventoryRows * (slotSize + slotPadding) - slotPadding
-		);
-
-		glm::vec2 startPos = renderer.currentCamera.position
-			+ glm::vec2(platform::getFrameBufferSizeX(), 0) // top-right corner of screen
-			- glm::vec2(inventorySize.x, 0) // shift left by inventory width
-			- glm::vec2(20, -20); // padding: right and top
-
 		for (int row = 0; row < inventoryRows; ++row)
 		{
 			for (int col = 0; col < inventoryCols; ++col)
 			{
-				int index = row * inventoryCols + col;
-				glm::vec2 pos = startPos + glm::vec2(col * (slotSize + slotPadding), row * (slotSize + slotPadding));
+				int index = (persistentTopRows + row) * inventoryCols + col;
+				glm::vec2 pos = startPos + glm::vec2(col * (slotSize + slotPadding), (row + 1) * (slotSize + slotPadding));
 
-				// Draw slot background
 				renderer.renderRectangle({ pos, slotSize, slotSize }, Colors_Gray);
 
-				// Draw item if occupied
 				if (inventory[index].occupied)
 				{
 					glm::vec4 color = Colors_White;
@@ -290,7 +364,6 @@ bool gameLogic(float deltaTime)
 
 					renderer.renderRectangle({ pos + glm::vec2(8, 8), slotSize - 16, slotSize - 16 }, color);
 
-					// Render count text if greater than 1
 					if (inventory[index].count > 1)
 					{
 						char countText[8];
@@ -301,7 +374,7 @@ bool gameLogic(float deltaTime)
 							countText,
 							font,
 							Colors_White,
-							0.6f,			// size
+							0.6f,
 							0.0f,
 							0.0f
 						);
@@ -311,7 +384,8 @@ bool gameLogic(float deltaTime)
 		}
 	}
 
-	#pragma endregion
+#pragma endregion	
+
 
 
 	renderer.flush();

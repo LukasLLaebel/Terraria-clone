@@ -6,7 +6,14 @@ A simple 2D game inspired by Terraria, currently being developed in C++.
 - 🧱 Placeable and destructible block platforms
 - 🔨 Build and destroy mechanics
 - 🎥 Camera that follows the player
-- Clean up world genration (Perlin noise)
+- 🧱 3 types of blocks
+	- Grass
+	- Stone
+	- Water
+- 🗺️ Cleaned up world genration (Perlin noise)
+- 🎒 Player inventory
+	- 🔄 Choose between items
+	- 📦 Store blocks 
 
 ## 🚀 Setup
 This project uses meemknight's excellent C++ game development setup.
@@ -19,12 +26,39 @@ His tutorials and resources were extremely helpful in getting started — highly
 - 🧠 Full Source Code [SpaceGame - Full Game](https://github.com/meemknight/game-in-cpp-full-course)
 
 ## 📝 Todo
-- Player inventory
 - background
 - Clean up world genration (fix water generation)
-- make structures
-- make enteties
+- Clean up world genration (different types of mountains)
+- Structures
+	- dungeon
+	- sandtemple
+	- Beehive
+	- Minesharfts
+- Enteties
+	- Bosses
+	- Zomibes
+	- Eyes
+	- Slimes
+	- Vultures
+	- Sharks
 - Clean up world genration (layered noise (octaves))
+- fix bug. "when player gets out of the map numbers of items float to the left"
+- fix bug. "can go throw blocks if on same axis"
+- move items arount in inventory
+- Health
+- Mana
+- Tools
+	- Hammer
+	- Sword
+	- pickaxe
+	- Axe 
+- NPCs
+	- Dialog
+	- Buy items
+- Chests
+- Doors
+- More blocks
+- block background
 
 ## 📌 Notes
 This is a work in progress, and I'm actively developing new features.
