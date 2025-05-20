@@ -13,6 +13,7 @@
 #include <gl2d/gl2d.h>
 #include <platformTools.h>
 #include <blocks.h>
+#include <worldGeneration.h>
 
 using std::min;
 using std::max;
@@ -28,149 +29,46 @@ struct GameplayData
 
 GameplayData data;
 
+// Inventory structure and state
+constexpr int inventoryCols = 10;
+constexpr int inventoryRows = 4;
+constexpr int slotSize = 50;
+constexpr int slotPadding = 4;
+
+bool inventoryOpen = false;
+
+struct InventorySlot
+{
+	bool occupied = false;
+	int itemID = -1;
+	int count = 0;
+};
+
+std::vector<InventorySlot> inventory(inventoryCols* inventoryRows);
+gl2d::Font font;
 gl2d::Renderer2D renderer;
-
 //gl2d::Texture backgroundTexture;
-
-std::vector<Block> blocks;
-
-const int worldWidth = 200;
-const int worldHeight = 100;
-const glm::vec2 blockSize = { 50.0f, 50.0f };
-const float blockStartY = 200.0f;
-
-BlockType getRandomBlockType()
-{
-	int r = rand() % 3;
-	switch (r)
-	{
-	case 0: return BlockType::Grass;
-	case 1: return BlockType::Water;
-	default: return BlockType::Stone;
-	}
-}
-
-// Simple 1D Perlin-like noise using smooth interpolation
-float lerp(float a, float b, float t) {
-	return a + t * (b - a);
-}
-
-float fade(float t) {
-	// Fade function improves smoothness
-	return t * t * t * (t * (t * 6 - 15) + 10);
-}
-
-float grad(int hash, float x) {
-	return (hash & 1) == 0 ? x : -x;
-}
-
-float perlin1D(float x) {
-	int xi = static_cast<int>(floor(x)) & 255;
-	float xf = x - floor(x);
-	float u = fade(xf);
-
-	static int p[512];
-	static bool initialized = false;
-	if (!initialized) {
-		for (int i = 0; i < 256; ++i) p[i] = i;
-		for (int i = 0; i < 256; ++i) {
-			int j = rand() % 256;
-			std::swap(p[i], p[j]);
-		}
-		for (int i = 0; i < 256; ++i) p[256 + i] = p[i];
-		initialized = true;
-	}
-
-	int aa = p[xi];
-	int ab = p[xi + 1];
-
-	return lerp(grad(aa, xf), grad(ab, xf - 1), u);
-}
-
-void generateRandomWorld()
-{
-	blocks.clear();
-
-	int baseGround = 4; // base ground layer
-	int maxHillHeight = 6;
-
-	// here i made a change : "random offset for more variety"
-	float randomOffset = static_cast<float>(rand() % 100);
-
-	// Generate a height map with sinusoidal hills and some noise
-	std::vector<int> heightMap(worldWidth);
-	float scale = 0.1f; // controls smoothness (lower = smoother)
-	for (int x = 0; x < worldWidth; ++x)
-	{
-		float noiseVal = perlin1D((x + randomOffset) * scale);
-		int height = baseGround + static_cast<int>((noiseVal + 1.0f) * 0.5f * maxHillHeight); // normalize from [-1,1] to [0,1]
-		height = max(2, min(worldHeight - 5, height)); // clamp to avoid edge errors
-		heightMap[x] = height;
-	}
-
-
-	for (int x = 0; x < worldWidth; ++x)
-	{
-		int columnHeight = heightMap[x];
-		bool waterCandidate = (columnHeight <= baseGround + 1); // lowland
-
-		for (int y = 0; y < worldHeight; ++y)
-		{
-			glm::vec2 pos = {
-				x * blockSize.x,
-				blockStartY + (worldHeight - 1 - y) * blockSize.y
-			};
-
-			BlockType type;
-
-			if (y < columnHeight - 3)
-			{
-				// here i made a change : "random caves with noise-like pattern"
-				if ((x * y + rand() % 5) % 17 == 0)
-				{
-					continue; // cave
-				}
-				type = BlockType::Stone;
-			}
-			else if (y < columnHeight - 1)
-			{
-				type = BlockType::Stone;
-			}
-			else if (y == columnHeight - 1)
-			{
-				type = BlockType::Grass;
-			}
-			else
-			{
-				// Air or water above ground
-				if (waterCandidate && y <= baseGround + 2 && x > 0 && x < worldWidth - 1)
-				{
-					if (heightMap[x - 1] <= baseGround + 1 && heightMap[x + 1] <= baseGround + 1)
-					{
-						type = BlockType::Water;
-					}
-					else continue;
-				}
-				else continue;
-			}
-
-			Block b(pos, type);
-			b.size = blockSize;
-			blocks.push_back(b);
-		}
-	}
-}
 
 bool initGame()
 {
 	gl2d::init();
 	renderer.create();
 
+	font.createFromFile(RESOURCES_PATH "font/ANDYB.TTF");
 
 	srand(static_cast<unsigned>(time(0))); // seed for random numbers
 	generateRandomWorld(); // generate the initial random world
 
 	//backgroundTexture.loadFromFile(RESOURCES_PATH "background/forrestBGMain.png", true);
+
+
+	// Fill a few slots with test items
+	//inventory[0].occupied = true;
+	//inventory[0].itemID = 1;
+
+	//inventory[5].occupied = true;
+	//inventory[5].itemID = 2;
+
 	return true;
 }
 
@@ -189,7 +87,11 @@ bool gameLogic(float deltaTime)
 	{
 		generateRandomWorld(); // regenerate random world on G key press
 	}
-
+	// Toggle inventory
+	if (platform::isButtonPressedOn(platform::Button::Tab))
+	{
+		inventoryOpen = !inventoryOpen;
+	}
 
 #pragma region Movement
 	const float gravity = 500.0f;
@@ -231,7 +133,6 @@ bool gameLogic(float deltaTime)
 	glm::vec2 cameraTarget = data.playerPos + data.size * 0.5f;
 	renderer.currentCamera.position = cameraTarget - glm::vec2(w, h) * 0.5f;
 	
-	//renderer.currentCamera.follow(data.playerPos, deltaTime * 550, 10, 50, w, h);
 #pragma endregion
 
 
@@ -300,13 +201,40 @@ bool gameLogic(float deltaTime)
 		{
 			if (blocks[i].position == snappedMouse)
 			{
-				// Remove the first block that matches the snapped position
+				BlockType brokenType = blocks[i].type;
+
+				// Remove block
 				blocks.erase(blocks.begin() + i);
-				break;
+
+				// Try to stack the item if it already exists
+				bool added = false;
+				for (auto& slot : inventory)
+				{
+					if (slot.occupied && slot.itemID == static_cast<int>(brokenType))
+					{
+						slot.count++; // Stack one more
+						added = true;
+						break;
+					}
+				}
+
+				// If not stacked, try to add to a new slot
+				if (!added)
+				{
+					for (auto& slot : inventory)
+					{
+						if (!slot.occupied)
+						{
+							slot.occupied = true;
+							slot.itemID = static_cast<int>(brokenType);
+							slot.count = 1;
+							break;
+						}
+					}
+				}
 			}
 		}
 	}
-
 #pragma endregion
 
 #pragma region Rendering
@@ -321,6 +249,69 @@ bool gameLogic(float deltaTime)
 
 	// Render block preview
 	renderer.renderRectangle({ snappedMouse, 50, 50}, Colors_Red); // draws outline only
+
+
+	#pragma region UI
+
+	// Render inventory UI
+	if (inventoryOpen)
+	{
+		glm::vec2 inventorySize = glm::vec2(
+			inventoryCols * (slotSize + slotPadding) - slotPadding,
+			inventoryRows * (slotSize + slotPadding) - slotPadding
+		);
+
+		glm::vec2 startPos = renderer.currentCamera.position
+			+ glm::vec2(platform::getFrameBufferSizeX(), 0) // top-right corner of screen
+			- glm::vec2(inventorySize.x, 0) // shift left by inventory width
+			- glm::vec2(20, -20); // padding: right and top
+
+		for (int row = 0; row < inventoryRows; ++row)
+		{
+			for (int col = 0; col < inventoryCols; ++col)
+			{
+				int index = row * inventoryCols + col;
+				glm::vec2 pos = startPos + glm::vec2(col * (slotSize + slotPadding), row * (slotSize + slotPadding));
+
+				// Draw slot background
+				renderer.renderRectangle({ pos, slotSize, slotSize }, Colors_Gray);
+
+				// Draw item if occupied
+				if (inventory[index].occupied)
+				{
+					glm::vec4 color = Colors_White;
+					switch (static_cast<BlockType>(inventory[index].itemID))
+					{
+					case BlockType::Grass: color = Colors_Green; break;
+					case BlockType::Stone: color = Colors_Gray; break;
+					case BlockType::Water: color = Colors_Blue; break;
+					default: break;
+					}
+
+					renderer.renderRectangle({ pos + glm::vec2(8, 8), slotSize - 16, slotSize - 16 }, color);
+
+					// Render count text if greater than 1
+					if (inventory[index].count > 1)
+					{
+						char countText[8];
+						snprintf(countText, sizeof(countText), "%d", inventory[index].count);
+
+						renderer.renderText(
+							pos + glm::vec2(4, 4),
+							countText,
+							font,
+							Colors_White,
+							0.6f,			// size
+							0.0f,
+							0.0f
+						);
+					}
+				}
+			}
+		}
+	}
+
+	#pragma endregion
 
 
 	renderer.flush();

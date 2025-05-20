@@ -24,6 +24,7 @@ His tutorials and resources were extremely helpful in getting started — highly
 - Clean up world genration (fix water generation)
 - make structures
 - make enteties
+- Clean up world genration (layered noise (octaves))
 
 ## 📌 Notes
 This is a work in progress, and I'm actively developing new features.
