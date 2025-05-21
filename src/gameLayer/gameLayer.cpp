@@ -14,6 +14,7 @@
 #include <platformTools.h>
 #include <blocks.h>
 #include <worldGeneration.h>
+#include <inventory.h>
 
 using std::min;
 using std::max;
@@ -29,6 +30,11 @@ struct GameplayData
 
 GameplayData data;
 
+
+enum class FacingDirection { Left, Right };
+FacingDirection playerFacing = FacingDirection::Right;
+
+
 // Inventory structure and state
 constexpr int inventoryCols = 10;
 constexpr int totalInventoryRows = 5; // total including top row
@@ -40,16 +46,31 @@ int selectedSlot = 0; // 0–9 (top inventory row)
 
 bool inventoryOpen = false;
 
+
+enum class ToolType {
+	None = -1,
+	Pickaxe = 100,
+	Axe,
+	Sword
+};
+
 struct InventorySlot
 {
 	bool occupied = false;
 	int itemID = -1;
 	int count = 0;
+	bool isTool = false;
 };
 
 std::vector<InventorySlot> inventory(inventoryCols* totalInventoryRows);
 gl2d::Font font;
 gl2d::Renderer2D renderer;
+
+gl2d::Texture playerTexture;
+gl2d::Texture pickaxeTexture;
+gl2d::Texture axeTexture;
+gl2d::Texture swordTexture;
+
 //gl2d::Texture backgroundTexture;
 
 bool initGame()
@@ -58,6 +79,11 @@ bool initGame()
 	renderer.create();
 
 	font.createFromFile(RESOURCES_PATH "font/ANDYB.TTF");
+	
+	playerTexture.loadFromFile(RESOURCES_PATH "entities/entity/Trent.png", true);
+	pickaxeTexture.loadFromFile(RESOURCES_PATH "tools/copperpickaxe.png", true);
+	axeTexture.loadFromFile(RESOURCES_PATH "tools/copperaxe.png", true);
+	swordTexture.loadFromFile(RESOURCES_PATH "tools/coppersword.png", true);
 
 	srand(static_cast<unsigned>(time(0))); // seed for random numbers
 	generateRandomWorld(); // generate the initial random world
@@ -71,6 +97,12 @@ bool initGame()
 
 	//inventory[5].occupied = true;
 	//inventory[5].itemID = 2;
+	
+	// items
+	inventory[0] = { true, static_cast<int>(ToolType::Pickaxe), 1, true };
+	inventory[1] = { true, static_cast<int>(ToolType::Axe), 1, true };
+	inventory[2] = { true, static_cast<int>(ToolType::Sword), 1, true };
+
 
 	return true;
 }
@@ -113,6 +145,7 @@ bool gameLogic(float deltaTime)
 #pragma region Movement
 	const float gravity = 500.0f;
 	const float jumpVelocity = -300.0f;
+	bool facingRight = true;
 
 	// Apply gravity
 	data.velocity.y += gravity * deltaTime;
@@ -121,10 +154,12 @@ bool gameLogic(float deltaTime)
 	if (platform::isButtonHeld(platform::Button::A) || platform::isButtonHeld(platform::Button::Left))
 	{
 		data.velocity.x = -200.0f;
+		playerFacing = FacingDirection::Left;
 	}
 	else if (platform::isButtonHeld(platform::Button::D) || platform::isButtonHeld(platform::Button::Right))
 	{
 		data.velocity.x = 200.0f;
+		playerFacing = FacingDirection::Right;
 	}
 	else
 	{
@@ -189,6 +224,8 @@ bool gameLogic(float deltaTime)
 	// Snap the mouse position to the nearest 50x50 grid cell
 	glm::vec2 snappedMouse = glm::floor(worldMouse / 50.0f) * 50.0f;
 
+
+	InventorySlot& slot = inventory[selectedSlot];
 	// Place a new block at the snapped position if left mouse is pressed
 	if (platform::isLMousePressed())
 	{
@@ -205,7 +242,7 @@ bool gameLogic(float deltaTime)
 		}
 
 		// Only add the block if no existing block was found
-		if (!exists)
+		if (!exists && slot.occupied && !slot.isTool && slot.count > 0)
 		{
 			// Check selected slot for block to place
 			InventorySlot& slot = inventory[selectedSlot];
@@ -232,6 +269,16 @@ bool gameLogic(float deltaTime)
 			if (blocks[i].position == snappedMouse)
 			{
 				BlockType brokenType = blocks[i].type;
+
+				// Require pickaxe to mine stone
+				InventorySlot& heldSlot = inventory[selectedSlot];
+				if (brokenType == BlockType::Stone) {
+					if (!(heldSlot.occupied && heldSlot.isTool && heldSlot.itemID == static_cast<int>(ToolType::Pickaxe))) {
+						// Can't break stone without a pickaxe
+						break;
+					}
+				}
+
 
 				// Remove block
 				blocks.erase(blocks.begin() + i);
@@ -275,7 +322,60 @@ bool gameLogic(float deltaTime)
 	}
 
 	// Render player
-	renderer.renderRectangle({ data.playerPos, data.size }, Colors_White);
+	glm::vec2 drawPos = data.playerPos;
+	glm::vec2 drawSize = data.size;
+
+	// Flip the sprite horizontally if facing left
+	if (playerFacing == FacingDirection::Left)
+	{
+		drawPos.x += drawSize.x; // move origin to the right side
+		drawSize.x *= -1;         // flip horizontally
+	}
+
+	renderer.renderRectangle({ drawPos, drawSize }, playerTexture);
+
+
+	// draw tools
+	// Render the tool in player's hand
+	InventorySlot& heldSlot = inventory[selectedSlot];
+	if (heldSlot.occupied && heldSlot.isTool)
+	{
+		gl2d::Texture* toolTex = nullptr;
+
+		switch (static_cast<ToolType>(heldSlot.itemID))
+		{
+		case ToolType::Pickaxe:
+			toolTex = &pickaxeTexture;
+			break;
+		case ToolType::Axe:
+			toolTex = &axeTexture;
+			break;
+		case ToolType::Sword:
+			toolTex = &swordTexture;
+			break;
+		default:
+			break;
+		}
+
+		if (toolTex && toolTex != 0)
+		{
+			glm::vec2 toolSize = { 40, 40 }; // adjust as needed
+			glm::vec2 toolOffset = { playerFacing == FacingDirection::Left ? -20.0f : 30.0f, 30.0f }; // change based on orientation
+			glm::vec2 toolPos = data.playerPos + toolOffset;
+
+			if (playerFacing == FacingDirection::Left)
+			{
+				toolSize.x *= -1; // Flip tool if facing left
+				toolPos.x += toolSize.x; // correct position after flipping
+			}
+
+			renderer.renderRectangle({ toolPos, toolSize }, *toolTex);
+		}
+	}
+
+
+
+
 
 	// Render block preview
 	renderer.renderRectangle({ snappedMouse, 50, 50}, Colors_Red); // draws outline only
@@ -309,7 +409,7 @@ bool gameLogic(float deltaTime)
 
 		if (inventory[index].occupied)
 		{
-			glm::vec4 color = Colors_White;
+			glm::vec4 color = inventory[index].isTool ? Colors_Orange : Colors_White;
 			switch (static_cast<BlockType>(inventory[index].itemID))
 			{
 			case BlockType::Grass: color = Colors_Green; break;

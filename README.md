@@ -14,6 +14,13 @@ A simple 2D game inspired by Terraria, currently being developed in C++.
 - 🎒 Player inventory
 	- 🔄 Choose between items
 	- 📦 Store blocks 
+- Textures
+	- Player texture
+	- Tool texture
+		- Sword
+		- Pickaxe
+		- Axe
+- Tool functionalities
 
 ## 🚀 Setup
 This project uses meemknight's excellent C++ game development setup.
@@ -44,6 +51,7 @@ His tutorials and resources were extremely helpful in getting started — highly
 - Clean up world genration (layered noise (octaves))
 - fix bug. "when player gets out of the map numbers of items float to the left"
 - fix bug. "can go throw blocks if on same axis"
+- fix bug. "alignment of tools, tool alignment gets weird when going left"
 - move items arount in inventory
 - Health
 - Mana
@@ -59,6 +67,8 @@ His tutorials and resources were extremely helpful in getting started — highly
 - Doors
 - More blocks
 - block background
+- Crafting
+- Textures
 
 ## 📌 Notes
 This is a work in progress, and I'm actively developing new features.
