@@ -14,7 +14,7 @@
 #include <platformTools.h>
 #include <blocks.h>
 #include <worldGeneration.h>
-#include <inventory.h>
+//#include <inventory.h>
 
 using std::min;
 using std::max;
@@ -67,9 +67,16 @@ gl2d::Font font;
 gl2d::Renderer2D renderer;
 
 gl2d::Texture playerTexture;
+
 gl2d::Texture pickaxeTexture;
 gl2d::Texture axeTexture;
 gl2d::Texture swordTexture;
+
+gl2d::Texture dirtTexture;
+gl2d::Texture cobblestroneTexture;
+//gl2d::Texture grassTexture;
+gl2d::Texture tempTexture;
+
 
 //gl2d::Texture backgroundTexture;
 
@@ -81,9 +88,15 @@ bool initGame()
 	font.createFromFile(RESOURCES_PATH "font/ANDYB.TTF");
 	
 	playerTexture.loadFromFile(RESOURCES_PATH "entities/entity/Trent.png", true);
+
 	pickaxeTexture.loadFromFile(RESOURCES_PATH "tools/copperpickaxe.png", true);
 	axeTexture.loadFromFile(RESOURCES_PATH "tools/copperaxe.png", true);
 	swordTexture.loadFromFile(RESOURCES_PATH "tools/coppersword.png", true);
+
+	//grassTexture.loadFromFile(RESOURCES_PATH "blocks/grassblock.png", true);
+	dirtTexture.loadFromFile(RESOURCES_PATH "blocks/dirtblock.png", true);
+	cobblestroneTexture.loadFromFile(RESOURCES_PATH "blocks/stoneblock.png", true);
+	tempTexture.loadFromFile(RESOURCES_PATH "blocks/tempBlock.png", true);
 
 	srand(static_cast<unsigned>(time(0))); // seed for random numbers
 	generateRandomWorld(); // generate the initial random world
@@ -357,19 +370,22 @@ bool gameLogic(float deltaTime)
 			break;
 		}
 
-		if (toolTex && toolTex != 0)
+		if (toolTex)
 		{
-			glm::vec2 toolSize = { 40, 40 }; // adjust as needed
-			glm::vec2 toolOffset = { playerFacing == FacingDirection::Left ? -20.0f : 30.0f, 30.0f }; // change based on orientation
-			glm::vec2 toolPos = data.playerPos + toolOffset;
+			glm::vec2 toolSize = { 50, 50 };
+			glm::vec2 offset;
 
-			if (playerFacing == FacingDirection::Left)
+			if (playerFacing == FacingDirection::Right)
 			{
-				toolSize.x *= -1; // Flip tool if facing left
-				toolPos.x += toolSize.x; // correct position after flipping
+				offset = glm::vec2(30, 30);
+				renderer.renderRectangle({ data.playerPos + offset, toolSize }, *toolTex);
 			}
-
-			renderer.renderRectangle({ toolPos, toolSize }, *toolTex);
+			else
+			{
+				offset = glm::vec2(-30, 30);
+				toolSize.x *= -1; // flip horizontally
+				renderer.renderRectangle({ data.playerPos + offset + glm::vec2(data.size.x, 0), toolSize }, *toolTex);
+			}
 		}
 	}
 
@@ -409,16 +425,58 @@ bool gameLogic(float deltaTime)
 
 		if (inventory[index].occupied)
 		{
-			glm::vec4 color = inventory[index].isTool ? Colors_Orange : Colors_White;
+
+
+			// Choose the right texture instead of color
+			gl2d::Texture* blockTex = nullptr;
+			
+			//glm::vec4 color = inventory[index].isTool ? Colors_Orange : Colors_White;
 			switch (static_cast<BlockType>(inventory[index].itemID))
 			{
-			case BlockType::Grass: color = Colors_Green; break;
-			case BlockType::Stone: color = Colors_Gray; break;
-			case BlockType::Water: color = Colors_Blue; break;
-			default: break;
+			case BlockType::Grass: 
+				blockTex = &dirtTexture; 
+				break;
+			case BlockType::Stone: 
+				blockTex = &cobblestroneTexture; 
+				break;
+			case BlockType::Water: 
+				blockTex = &tempTexture; 
+				break;
+			default: 
+				break;
 			}
 
-			renderer.renderRectangle({ pos + glm::vec2(8, 8), slotSize - 16, slotSize - 16 }, color);
+			gl2d::Texture* toolTex = nullptr;
+			switch (static_cast<ToolType>(inventory[index].itemID))
+			{
+			case ToolType::Pickaxe:
+				toolTex = &pickaxeTexture;
+				break;
+			case ToolType::Axe:
+				toolTex = &axeTexture;
+				break;
+			case ToolType::Sword:
+				toolTex = &swordTexture;
+				break;
+			default:
+				break;
+			}
+
+			// Render texture in inventory slot
+			if (blockTex)
+			{
+				renderer.renderRectangle(
+					{ pos + glm::vec2(8, 8), slotSize - 16, slotSize - 16 },
+					*blockTex
+				);
+			}
+			else if (toolTex)
+			{
+				renderer.renderRectangle(
+					{ pos + glm::vec2(8, 8), slotSize - 16, slotSize - 16 },
+					* toolTex
+				);
+			}
 
 
 			if (inventory[index].count > 1)
@@ -453,16 +511,56 @@ bool gameLogic(float deltaTime)
 
 				if (inventory[index].occupied)
 				{
-					glm::vec4 color = Colors_White;
+					// Choose the right texture instead of color
+					gl2d::Texture* blockTex = nullptr;
+
+					//glm::vec4 color = inventory[index].isTool ? Colors_Orange : Colors_White;
 					switch (static_cast<BlockType>(inventory[index].itemID))
 					{
-					case BlockType::Grass: color = Colors_Green; break;
-					case BlockType::Stone: color = Colors_Gray; break;
-					case BlockType::Water: color = Colors_Blue; break;
-					default: break;
+					case BlockType::Grass:
+						blockTex = &dirtTexture;
+						break;
+					case BlockType::Stone:
+						blockTex = &cobblestroneTexture;
+						break;
+					case BlockType::Water:
+						blockTex = &tempTexture;
+						break;
+					default:
+						break;
 					}
 
-					renderer.renderRectangle({ pos + glm::vec2(8, 8), slotSize - 16, slotSize - 16 }, color);
+					gl2d::Texture* toolTex = nullptr;
+					switch (static_cast<ToolType>(inventory[index].itemID))
+					{
+					case ToolType::Pickaxe:
+						toolTex = &pickaxeTexture;
+						break;
+					case ToolType::Axe:
+						toolTex = &axeTexture;
+						break;
+					case ToolType::Sword:
+						toolTex = &swordTexture;
+						break;
+					default:
+						break;
+					}
+
+					// Render texture in inventory slot
+					if (blockTex)
+					{
+						renderer.renderRectangle(
+							{ pos + glm::vec2(8, 8), slotSize - 16, slotSize - 16 },
+							*blockTex
+						);
+					}
+					else if (toolTex)
+					{
+						renderer.renderRectangle(
+							{ pos + glm::vec2(8, 8), slotSize - 16, slotSize - 16 },
+							*toolTex
+						);
+					}
 
 					if (inventory[index].count > 1)
 					{

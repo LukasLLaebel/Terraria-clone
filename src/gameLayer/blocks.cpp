@@ -1,6 +1,11 @@
 #include "blocks.h"
 #include <gl2d/gl2d.h>
 
+
+
+
+
+
 Block::Block(glm::vec2 pos, BlockType t)
     : position(pos), type(t)
 {
@@ -12,17 +17,17 @@ void Block::render(gl2d::Renderer2D &renderer) const
     switch (type)
     {
     case BlockType::Grass:
-        renderer.renderRectangle(rect, Colors_Green);
+        renderer.renderRectangle(rect, dirtTexture);
         break;
     case BlockType::Stone:
-        renderer.renderRectangle(rect, Colors_Gray);
+        renderer.renderRectangle(rect, cobblestroneTexture);
         break;
     case BlockType::Water:
-        renderer.renderRectangle(rect, Colors_Blue);
+        renderer.renderRectangle(rect, tempTexture);
         break;
     case BlockType::Custom:
     default:
-        renderer.renderRectangle(rect, Colors_White);
+        renderer.renderRectangle(rect, tempTexture);
         break;
     }
 }

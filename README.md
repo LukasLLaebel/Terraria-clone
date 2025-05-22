@@ -69,6 +69,7 @@ His tutorials and resources were extremely helpful in getting started — highly
 - block background
 - Crafting
 - Textures
+- be able to safe game (safesave)
 
 ## 📌 Notes
 This is a work in progress, and I'm actively developing new features.
