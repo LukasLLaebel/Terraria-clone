@@ -48,6 +48,9 @@ His tutorials and resources were extremely helpful in getting started — highly
 	- Slimes
 	- Vultures
 	- Sharks
+	- bunnies
+	- hedgehugs
+	- Garden Gnomes
 - Clean up world genration (layered noise (octaves))
 - fix bug. "when player gets out of the map numbers of items float to the left"
 - fix bug. "can go throw blocks if on same axis"
