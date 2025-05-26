@@ -15,6 +15,7 @@
 #include <blocks.h>
 #include <worldGeneration.h>
 //#include <inventory.h>
+#include <entities.h>
 
 using std::min;
 using std::max;
@@ -29,7 +30,7 @@ struct GameplayData
 }data;
 
 
-enum class FacingDirection { Left, Right };
+//enum class FacingDirection { Left, Right };
 FacingDirection playerFacing = FacingDirection::Right;
 
 // Inventory structure and state
@@ -59,19 +60,7 @@ struct InventorySlot
 	bool isTool = false;
 };
 
-struct Bunny
-{
-	glm::vec2 position;
-	glm::vec2 velocity;
-	float jumpCooldown = 0.0f;       // cooldown before next jump
-	float jumpInterval = 1.0f + static_cast<float>(rand() % 200) / 100.0f; // 1.0–3.0s
-	FacingDirection facing = FacingDirection::Left;
-	bool onGround = false;
-	const glm::vec2 Size = { 40, 40 };
-}bunny;
 
-std::vector<Bunny> bunnies;
-float bunnySpawnTimer = 3.0f + rand() % 3; // Delay first spawn 3–6s
 
 std::vector<InventorySlot> inventory(inventoryCols* totalInventoryRows);
 gl2d::Font font;
@@ -79,6 +68,7 @@ gl2d::Renderer2D renderer;
 
 gl2d::Texture playerTexture;
 gl2d::Texture bunnyTexture;
+//gl2d::Texture bunnyAtlasTexture;
 
 
 gl2d::Texture pickaxeTexture;
@@ -102,7 +92,9 @@ bool initGame()
 	
 	playerTexture.loadFromFile(RESOURCES_PATH "entities/entity/Trent.png", true);
 	bunnyTexture.loadFromFile(RESOURCES_PATH "entities/entity/bunny.png", true);
-
+	
+	//bunnyAtlasTexture.loadFromFileWithPixelPadding(RESOURCES_PATH "entities/stitchedFiles/bunnySprite.png", 128, true);
+	//gl2d::TextureAtlasPadding bunnyAtlas(8, 1, bunnyAtlasTexture.GetSize().x, bunnyAtlasTexture.GetSize().y);
 
 	pickaxeTexture.loadFromFile(RESOURCES_PATH "tools/copperpickaxe.png", true);
 	axeTexture.loadFromFile(RESOURCES_PATH "tools/copperaxe.png", true);
@@ -117,14 +109,6 @@ bool initGame()
 	generateRandomWorld(); // generate the initial random world
 
 	//backgroundTexture.loadFromFile(RESOURCES_PATH "background/forrestBGMain.png", true);
-
-
-	// Fill a few slots with test items
-	//inventory[0].occupied = true;
-	//inventory[0].itemID = 1;
-
-	//inventory[5].occupied = true;
-	//inventory[5].itemID = 2;
 	
 	// items
 	inventory[0] = { true, static_cast<int>(ToolType::Pickaxe), 1, true };
@@ -169,23 +153,8 @@ bool gameLogic(float deltaTime)
 			break;
 		}
 	}
-#pragma region Bunny
 
-	bunnySpawnTimer -= deltaTime;
-	if (bunnySpawnTimer <= 0.0f)
-	{
-		bunnySpawnTimer = 5.0f + rand() % 5; // Spawn interval 5–10s
-
-		glm::vec2 spawnPos = data.playerPos + glm::vec2((rand() % 200 - 100), -50); // Random nearby x offset
-		bunnies.push_back({ spawnPos, {0, 0}, 0.0f });
-	}
-
-
-#pragma endregion
-
-
-
-
+	bunnySpawn(deltaTime,data.playerPos);
 
 #pragma region Movement
 	const float gravity = 500.0f;
@@ -242,93 +211,59 @@ bool gameLogic(float deltaTime)
 	{
 		glm::vec4 blockRect = { block.position.x, block.position.y, block.size.x, block.size.y };
 
-		bool isTouching =
-			playerRect.x < blockRect.x + blockRect.z &&
-			playerRect.x + playerRect.z > blockRect.x &&
-			playerRect.y + playerRect.w > blockRect.y &&
-			playerRect.y + playerRect.w < blockRect.y + blockRect.w;
+		bool xOverlap = playerRect.x < blockRect.x + blockRect.z &&
+			playerRect.x + playerRect.z > blockRect.x;
+		bool yOverlap = playerRect.y < blockRect.y + blockRect.w &&
+			playerRect.y + playerRect.w > blockRect.y;
 
-		if (isTouching)
+		if (xOverlap && yOverlap)
 		{
-			data.playerPos.y = block.position.y - data.size.y;
-			data.velocity.y = 0;
-			data.isOnGround = true;
-			break;
+			// Calculate penetration depths
+			float fromLeft = (playerRect.x + playerRect.z) - blockRect.x;
+			float fromRight = (blockRect.x + blockRect.z) - playerRect.x;
+			float fromTop = (playerRect.y + playerRect.w) - blockRect.y;
+			float fromBottom = (blockRect.y + blockRect.w) - playerRect.y;
+
+			float minHoriz = min(fromLeft, fromRight);
+			float minVert = min(fromTop, fromBottom);
+
+			if (minHoriz < minVert)
+			{
+				// Horizontal collision
+				if (fromLeft < fromRight)
+				{
+					// Colliding from left
+					data.playerPos.x = blockRect.x - data.size.x;
+				}
+				else
+				{
+					// Colliding from right
+					data.playerPos.x = blockRect.x + blockRect.z;
+				}
+				data.velocity.x = 0;
+			}
+			else
+			{
+				// Vertical collision
+				if (fromTop < fromBottom)
+				{
+					// Colliding from above (landing)
+					data.playerPos.y = blockRect.y - data.size.y;
+					data.velocity.y = 0;
+					data.isOnGround = true;
+				}
+				else
+				{
+					// Colliding from below
+					data.playerPos.y = blockRect.y + blockRect.w;
+					data.velocity.y = 0;
+				}
+			}
 		}
 	}
 #pragma endregion
 
-	for (auto& bunny : bunnies)
-	{
-		bunny.velocity.y += (gravity*2) * deltaTime;
-
-		// Distance to player
-		glm::vec2 toPlayer = data.playerPos - bunny.position;
-		float distance = glm::length(toPlayer);
-
-		bunny.jumpCooldown -= deltaTime;
-		if (bunny.jumpCooldown <= 0.0f && bunny.onGround)
-		{
-			bunny.jumpCooldown = bunny.jumpInterval;
-			bool facingRight = false;
-			// Determine jump direction
-			if (distance < 200.0f)
-			{
-				bunny.velocity.x = (bunny.position.x > data.playerPos.x) ? 100.0f : -100.0f;
-			}
-			else
-			{
-				bunny.velocity.x = (rand() % 2 == 0) ? 100.0f : -100.0f;
-			}
-
-			// Set facing direction based on velocity
-			if (bunny.velocity.x > 0)
-			{
-				bunny.facing = FacingDirection::Right;
-			}
-			else if (bunny.velocity.x < 0)
-			{
-				bunny.facing = FacingDirection::Left;
-			}
-
-
-			// Apply jump
-			bunny.velocity.y = jumpVelocity;
-			bunny.onGround = false;
-		}
-
-		// Move bunny
-		bunny.position += bunny.velocity * deltaTime;
-
-		// Simple ground collision
-		bunny.onGround = false;
-		glm::vec4 bunnyRect = { bunny.position.x, bunny.position.y, 40, 40 };
-
-
-
-		for (auto& block : blocks)
-		{
-			glm::vec4 blockRect = { block.position.x, block.position.y, block.size.x, block.size.y };
-
-			bool isTouching =
-				bunnyRect.x < blockRect.x + blockRect.z &&
-				bunnyRect.x + bunnyRect.z > blockRect.x &&
-				bunnyRect.y + bunnyRect.w > blockRect.y &&
-				bunnyRect.y + bunnyRect.w < blockRect.y + blockRect.w;
-
-			if (isTouching)
-			{
-				bunny.position.y = block.position.y - 40;
-				bunny.velocity.y = 0;
-				bunny.onGround = true;
-				bunny.velocity.x = 0; // Stop horizontal movement after landing
-				break;
-			}
-
-		}
-	}
-
-
+	bunnyLogic(deltaTime, gravity, data.playerPos, jumpVelocity, blocks);
 
 #pragma region Mouse Interaction
 	// Get the current mouse position relative to the window (screen space)
@@ -452,9 +387,6 @@ bool gameLogic(float deltaTime)
 
 	renderer.renderRectangle({ drawPos, drawSize }, playerTexture);
 
-
-
-	
 	for (auto& bunny : bunnies)
 	{
 		// render bunny
