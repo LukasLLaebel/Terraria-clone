@@ -6,6 +6,8 @@
 //extern gl2d::Texture grassTexture;
 extern gl2d::Texture dirtTexture;
 extern gl2d::Texture cobblestroneTexture;
+extern gl2d::Texture woodTexture;
+//extern gl2d::Texture leaveTexture;
 extern gl2d::Texture tempTexture;
 
 enum class BlockType
@@ -13,7 +15,10 @@ enum class BlockType
     Grass,
     Stone,
     Water,
+    Wood,     // for tree trunk and branches
+    Leaves,    // for tree foliage
     Custom
+
 };
 
 struct Block

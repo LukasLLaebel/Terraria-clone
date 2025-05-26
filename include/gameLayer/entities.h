@@ -1,6 +1,5 @@
 #pragma once
 #include <gl2d/gl2d.h>
-//#include <glm/glm.hpp>
 #include <vector>
 #include <blocks.h>
 

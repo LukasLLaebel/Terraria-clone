@@ -130,4 +130,49 @@ void generateRandomWorld()
 			blocks.push_back(b);
 		}
 	}
+	std::vector<int> treePositions;
+
+	for (int x = 1; x < worldWidth - 1; ++x)
+	{
+		int y = heightMap[x] - 1;
+
+		bool flatEnough = abs(heightMap[x - 1] - y) <= 1 && abs(heightMap[x + 1] - y) <= 1;
+		bool hasSpace = std::all_of(treePositions.begin(), treePositions.end(), [&](int tx) {
+			return abs(tx - x) >= 3;
+			});
+
+		if (flatEnough && hasSpace && rand() % 10 == 0)
+		{
+			generateTree(x, y);
+			treePositions.push_back(x);
+		}
+	}
+}
+
+
+void generateTree(int x, int groundHeight)
+{
+	const int trunkHeight = 4 + rand() % 3;  // 4–6 blocks tall
+
+	// Generate the trunk
+	for (int i = 0; i < trunkHeight; ++i)
+	{
+		glm::vec2 pos = {
+			x * blockSize.x,
+			blockStartY + (worldHeight - 2 - (groundHeight + i)) * blockSize.y
+		};
+		blocks.push_back(Block(pos, BlockType::Wood));
+	}
+
+	int topY = groundHeight + trunkHeight;
+
+	// Add a single leaf block at the top
+	if (x >= 0 && x < worldWidth && topY >= 0 && topY < worldHeight)
+	{
+		glm::vec2 leafPos = {
+			x * blockSize.x,
+			blockStartY + (worldHeight - 1 - topY) * blockSize.y
+		};
+		blocks.push_back(Block(leafPos, BlockType::Leaves));
+	}
 }

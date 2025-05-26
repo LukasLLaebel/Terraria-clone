@@ -25,6 +25,12 @@ void Block::render(gl2d::Renderer2D &renderer) const
     case BlockType::Water:
         renderer.renderRectangle(rect, tempTexture);
         break;
+    case BlockType::Wood:
+        renderer.renderRectangle(rect, woodTexture);
+        break;
+    case BlockType::Leaves:
+        renderer.renderRectangle(rect, tempTexture);
+        break;
     case BlockType::Custom:
     default:
         renderer.renderRectangle(rect, tempTexture);
@@ -39,6 +45,8 @@ std::string Block::getName() const
     case BlockType::Grass: return "Grass";
     case BlockType::Stone: return "Stone";
     case BlockType::Water: return "Water";
+    case BlockType::Wood: return "Wood";
+    case BlockType::Leaves: return "Leaves";
     case BlockType::Custom: return "Custom";
     default: return "Unknown";
     }

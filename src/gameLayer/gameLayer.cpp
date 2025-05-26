@@ -77,7 +77,7 @@ gl2d::Texture swordTexture;
 
 gl2d::Texture dirtTexture;
 gl2d::Texture cobblestroneTexture;
-//gl2d::Texture grassTexture;
+gl2d::Texture woodTexture;
 gl2d::Texture tempTexture;
 
 
@@ -103,6 +103,7 @@ bool initGame()
 	//grassTexture.loadFromFile(RESOURCES_PATH "blocks/grassblock.png", true);
 	dirtTexture.loadFromFile(RESOURCES_PATH "blocks/dirtblock.png", true);
 	cobblestroneTexture.loadFromFile(RESOURCES_PATH "blocks/stoneblock.png", true);
+	woodTexture.loadFromFile(RESOURCES_PATH "blocks/wood.png", true);
 	tempTexture.loadFromFile(RESOURCES_PATH "blocks/tempBlock.png", true);
 
 	srand(static_cast<unsigned>(time(0))); // seed for random numbers
@@ -191,8 +192,6 @@ bool gameLogic(float deltaTime)
 	data.playerPos += data.velocity * deltaTime;
 
 #pragma endregion
-
-
 
 
 #pragma region camera follow
@@ -493,6 +492,9 @@ bool gameLogic(float deltaTime)
 			case BlockType::Stone: 
 				blockTex = &cobblestroneTexture; 
 				break;
+			case BlockType::Wood:
+				blockTex = &woodTexture;
+				break;
 			case BlockType::Water: 
 				blockTex = &tempTexture; 
 				break;
@@ -576,6 +578,9 @@ bool gameLogic(float deltaTime)
 						break;
 					case BlockType::Stone:
 						blockTex = &cobblestroneTexture;
+						break;
+					case BlockType::Wood:
+						blockTex = &woodTexture;
 						break;
 					case BlockType::Water:
 						blockTex = &tempTexture;

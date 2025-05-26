@@ -7,3 +7,4 @@
 extern std::vector<Block> blocks;
 
 void generateRandomWorld();
+void generateTree(int x, int groundHeight);

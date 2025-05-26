@@ -3,7 +3,7 @@
 std::vector<Bunny> bunnies;
 float bunnySpawnTimer = 10.0f;
 
-
+#pragma region Bunny
 void bunnySpawn(float deltaTime, glm::vec2 playerPos)
 {
 	bunnySpawnTimer -= deltaTime;
@@ -86,6 +86,9 @@ void bunnyLogic(float deltaTime, float gravity, glm::vec2 playerPos, float jumpV
 		}
 	}
 }
+#pragma endregion
+
+
 
 
 
