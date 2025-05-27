@@ -5,6 +5,7 @@ A simple 2D game inspired by Terraria, currently being developed in C++.
 - 👤 Player movement
 - 🧱 Placeable and destructible block platforms
 - 🔨 Build and destroy mechanics
+	- 👁️ LOS (Line Of Sigt) added
 - 🎥 Camera that follows the player
 - Collision optimised in utilities
 - 🧱 3 types of blocks
@@ -61,9 +62,7 @@ His tutorials and resources were extremely helpful in getting started — highly
 	- Slimes
 	- Vultures
 	- Sharks
-	- Hedgehugs
 	- Garden Gnomes
-- Clean up world genration (layered noise (octaves))
 - fix bug. "when player gets out of the map numbers of items float to the left"
 - fix bug. "can go throw blocks if on same axis"
 - fix bug. "fix the collision jitter"
@@ -90,6 +89,7 @@ His tutorials and resources were extremely helpful in getting started — highly
 	- Trees drop planks depending on height and as items
 - Shoud be able to drop items
 - Player can organise items in inventory
+- Optimise for lagging
 
 ## 📌 Notes
 This is a work in progress, and I'm actively developing new features.

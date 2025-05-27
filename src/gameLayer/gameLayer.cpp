@@ -126,6 +126,10 @@ bool initGame()
 
 bool gameLogic(float deltaTime)
 {
+	static float fps = 0.0f;
+	static float timeAccumulator = 0.0f;
+	static int frameCount = 0;
+
 #pragma region Init
 	int w = platform::getFrameBufferSizeX();
 	int h = platform::getFrameBufferSizeY();
@@ -133,6 +137,8 @@ bool gameLogic(float deltaTime)
 	glViewport(0, 0, w, h);
 	glClear(GL_COLOR_BUFFER_BIT);
 	renderer.updateWindowMetrics(w, h);
+
+
 #pragma endregion
 
 	if (platform::isButtonPressedOn(platform::Button::G))
@@ -206,10 +212,8 @@ bool gameLogic(float deltaTime)
 #pragma endregion
 
 
-#pragma region Collision
-	// player 
+	// player collision
 	Collision(data.playerPos, data.isOnGround, data.size, data.velocity);
-#pragma endregion
 
 	bunnyLogic(deltaTime, gravity, data.playerPos, jumpVelocity, blocks);
 
@@ -270,6 +274,42 @@ bool gameLogic(float deltaTime)
 		{
 			if (blocks[i].position == snappedMouse)
 			{
+				// LOS - Line of Sigt
+				bool isVisible = true;
+
+				glm::vec2 playerCenter = data.playerPos + glm::vec2(25.0f, 50.0f); // Center of player
+				glm::vec2 targetBlockCenter = blocks[i].position + glm::vec2(25.0f, 25.0f); // Center of block
+
+				glm::vec2 direction = glm::normalize(targetBlockCenter - playerCenter);
+				float distance = glm::distance(targetBlockCenter, playerCenter);
+				float step = 5.0f;
+
+				for (float d = 0.0f; d < distance; d += step)
+				{
+					glm::vec2 checkPos = playerCenter + direction * d;
+
+					for (const auto& otherBlock : blocks)
+					{
+						if (otherBlock.position == blocks[i].position) continue;
+
+						if (checkPos.x >= otherBlock.position.x && checkPos.x < otherBlock.position.x + 50.0f &&
+							checkPos.y >= otherBlock.position.y && checkPos.y < otherBlock.position.y + 50.0f)
+						{
+							isVisible = false;
+							break;
+						}
+					}
+
+					if (!isVisible)
+						break;
+				}
+
+				if (!isVisible)
+					break; // Exit early — block is not in line of sight
+
+
+
+
 				BlockType brokenType = blocks[i].type;
 				InventorySlot& heldSlot = inventory[selectedSlot];
 
@@ -401,7 +441,19 @@ bool gameLogic(float deltaTime)
 		}
 	}
 #pragma endregion
+	/*
+	// For debuging
+	// FPS calculater
+	timeAccumulator += deltaTime;
+	frameCount++;
 
+	if (timeAccumulator >= 1.0f)
+	{
+		fps = frameCount / timeAccumulator;
+		timeAccumulator = 0.0f;
+		frameCount = 0;
+	}
+	*/
 #pragma region Rendering
 	// Render all blocks
 	for (auto& block : blocks)
@@ -703,6 +755,12 @@ bool gameLogic(float deltaTime)
 
 	renderer.flush();
 #pragma endregion
+
+	/* Debug menu
+	ImGui::Begin("Game Controls | Debug");
+	ImGui::Text("FPS: %.1f", fps);
+	ImGui::End();
+	*/
 
 	return true;
 }
