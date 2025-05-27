@@ -7,7 +7,7 @@
 extern gl2d::Texture dirtTexture;
 extern gl2d::Texture cobblestroneTexture;
 extern gl2d::Texture woodTexture;
-//extern gl2d::Texture leaveTexture;
+extern gl2d::Texture LeavesTexture;
 extern gl2d::Texture tempTexture;
 
 enum class BlockType
@@ -26,7 +26,6 @@ struct Block
     glm::vec2 position;
     glm::vec2 size = { 50.0f, 50.0f };
     BlockType type;
-
 
     Block(glm::vec2 pos, BlockType t);
     void render(gl2d::Renderer2D& renderer) const;

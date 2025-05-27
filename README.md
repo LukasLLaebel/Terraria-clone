@@ -15,6 +15,8 @@ A simple 2D game inspired by Terraria, currently being developed in C++.
 	- 🌀 Added Perlin noise (smoother world gen)
 	- 🌳 Added trees to world generation
 	- 🕳️ Trees are walk throw have no collistion
+	- ⚒ Only axe can destroy trees
+	- 💥 Destroy one block and trees fell
 - 🎒 Player inventory
 	- 🔄 Choose between items
 	- 📦 Store blocks
@@ -29,7 +31,6 @@ A simple 2D game inspired by Terraria, currently being developed in C++.
 - 🐾 Enteties
 	- 🐰 Bunnies
 	- 🦔 Hedgehogs
-
 
 ## 🚀 Setup
 This project uses meemknight's excellent C++ game development setup.
@@ -84,9 +85,7 @@ His tutorials and resources were extremely helpful in getting started — highly
 - be able to safe game (safesave)
 - Multiplayer
 - Animations
-- improve trees
-	- Only axe can destroy trees
-	- Can go through trees
+- Improve trees
 	- Trees drop planks depending on height and as items
 - Shoud be able to drop items
 - Player can organise items in inventory

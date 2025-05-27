@@ -13,6 +13,8 @@ Block::Block(glm::vec2 pos, BlockType t)
 
 void Block::render(gl2d::Renderer2D &renderer) const
 {
+    // leaves is a bigger block so we make another rectangle for it where we center it depenend to its size
+    glm::vec4 leavesRect = { position.x - size.x * 2, position.y - size.y * 4, size.x * 5, size.y * 5 };
     glm::vec4 rect = { position.x, position.y, size.x, size.y };
     switch (type)
     {
@@ -29,7 +31,7 @@ void Block::render(gl2d::Renderer2D &renderer) const
         renderer.renderRectangle(rect, woodTexture);
         break;
     case BlockType::Leaves:
-        renderer.renderRectangle(rect, tempTexture);
+        renderer.renderRectangle(leavesRect, LeavesTexture);
         break;
     case BlockType::Custom:
     default:

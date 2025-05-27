@@ -79,6 +79,7 @@ gl2d::Texture swordTexture;
 gl2d::Texture dirtTexture;
 gl2d::Texture cobblestroneTexture;
 gl2d::Texture woodTexture;
+gl2d::Texture LeavesTexture;
 gl2d::Texture tempTexture;
 
 
@@ -106,6 +107,7 @@ bool initGame()
 	dirtTexture.loadFromFile(RESOURCES_PATH "blocks/dirtblock.png", true);
 	cobblestroneTexture.loadFromFile(RESOURCES_PATH "blocks/stoneblock.png", true);
 	woodTexture.loadFromFile(RESOURCES_PATH "blocks/wood.png", true);
+	LeavesTexture.loadFromFile(RESOURCES_PATH "blocks/treeTop.png", true);
 	tempTexture.loadFromFile(RESOURCES_PATH "blocks/tempBlock.png", true);
 
 	srand(static_cast<unsigned>(time(0))); // seed for random numbers
@@ -269,46 +271,132 @@ bool gameLogic(float deltaTime)
 			if (blocks[i].position == snappedMouse)
 			{
 				BlockType brokenType = blocks[i].type;
-
-				// Require pickaxe to mine stone
 				InventorySlot& heldSlot = inventory[selectedSlot];
-				if (brokenType == BlockType::Stone) {
-					if (!(heldSlot.occupied && heldSlot.isTool && heldSlot.itemID == static_cast<int>(ToolType::Pickaxe))) {
-						// Can't break stone without a pickaxe
-						break;
-					}
+
+				// Check for correct tool requirements
+				if (brokenType == BlockType::Stone &&
+					!(heldSlot.occupied && heldSlot.isTool && heldSlot.itemID == static_cast<int>(ToolType::Pickaxe)))
+				{
+					break; // Needs pickaxe
 				}
 
-
-				// Remove block
-				blocks.erase(blocks.begin() + i);
-
-				// Try to stack the item if it already exists
-				bool added = false;
-				for (auto& slot : inventory)
+				if (brokenType == BlockType::Wood &&
+					!(heldSlot.occupied && heldSlot.isTool && heldSlot.itemID == static_cast<int>(ToolType::Axe)))
 				{
-					if (slot.occupied && slot.itemID == static_cast<int>(brokenType))
+					break; // Needs axe
+				}
+
+				if (brokenType == BlockType::Leaves)
+				{
+					break; // Don't allow breaking leaves directly
+				}
+
+				// Tree felling logic (wood block was broken)
+				if (brokenType == BlockType::Wood)
+				{
+					glm::vec2 currentPos = blocks[i].position;
+
+					while (true)
 					{
-						slot.count++; // Stack one more
-						added = true;
-						break;
+						bool found = false;
+
+						for (int j = 0; j < blocks.size(); ++j)
+						{
+							if (blocks[j].position == currentPos &&
+								(blocks[j].type == BlockType::Wood || blocks[j].type == BlockType::Leaves))
+							{
+								BlockType typeToAdd = blocks[j].type;
+
+								// Remove the block
+								blocks.erase(blocks.begin() + j);
+
+								// Try to stack in inventory
+								bool added = false;
+								for (auto& slot : inventory)
+								{
+									if (slot.occupied && slot.itemID == static_cast<int>(typeToAdd))
+									{
+										slot.count++;
+										added = true;
+										break;
+									}
+								}
+								if (!added)
+								{
+									for (auto& slot : inventory)
+									{
+										if (!slot.occupied)
+										{
+											slot.occupied = true;
+											slot.itemID = static_cast<int>(typeToAdd);
+											slot.count = 1;
+											break;
+										}
+									}
+								}
+
+								found = true;
+								break; // Continue with next upward block
+							}
+						}
+
+						if (!found)
+							break;
+
+						currentPos.y -= 50.0f; // Move up
+					}
+					// because the leaves are not centered we center them in blocks.cpp
+					// because of that we need to look for the leaves when cutting down trees
+					glm::vec2 originalWoodPos = blocks[i].position;
+					// After destroying all wood blocks
+					for (int i = 0; i < blocks.size(); )
+					{
+						if (blocks[i].type == BlockType::Leaves)
+						{
+							glm::vec2 leafPos = blocks[i].position;
+							// Check distance to any destroyed wood block (or the original wood pos)
+							if (glm::distance(leafPos, originalWoodPos) < 5)
+							{
+								blocks.erase(blocks.begin() + i);
+								continue; // skip i increment
+							}
+						}
+						++i;
 					}
 				}
-
-				// If not stacked, try to add to a new slot
-				if (!added)
+				else
 				{
+					// Regular block breaking
+					BlockType typeToAdd = brokenType;
+					blocks.erase(blocks.begin() + i);
+
+					// Try stacking
+					bool added = false;
 					for (auto& slot : inventory)
 					{
-						if (!slot.occupied)
+						if (slot.occupied && slot.itemID == static_cast<int>(typeToAdd))
 						{
-							slot.occupied = true;
-							slot.itemID = static_cast<int>(brokenType);
-							slot.count = 1;
+							slot.count++;
+							added = true;
 							break;
 						}
 					}
+					if (!added)
+					{
+						for (auto& slot : inventory)
+						{
+							if (!slot.occupied)
+							{
+								slot.occupied = true;
+								slot.itemID = static_cast<int>(typeToAdd);
+								slot.count = 1;
+								break;
+							}
+						}
+					}
 				}
+
+				break; // Only break one block or tree per click
 			}
 		}
 	}
@@ -320,7 +408,6 @@ bool gameLogic(float deltaTime)
 	{
 		block.render(renderer);
 	}
-
 
 	// Render player
 	glm::vec2 drawPos = data.playerPos;
