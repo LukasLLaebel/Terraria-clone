@@ -6,16 +6,18 @@ A simple 2D game inspired by Terraria, currently being developed in C++.
 - 🧱 Placeable and destructible block platforms
 - 🔨 Build and destroy mechanics
 - 🎥 Camera that follows the player
+- Collision optimised in utilities
 - 🧱 3 types of blocks
-	- 🌿 Grass
+	- 🟫 Dirt
 	- 🏔️ Stone
 	- 🌊 Water
 - 🗺️ World genration
 	- 🌀 Added Perlin noise (smoother world gen)
 	- 🌳 Added trees to world generation
+	- 🕳️ Trees are walk throw have no collistion
 - 🎒 Player inventory
 	- 🔄 Choose between items
-	- 📦 Store blocks 
+	- 📦 Store blocks
 - 🖼️ Textures
 	- 👕 Player texture
 	- 🧰 Tool texture
@@ -26,6 +28,7 @@ A simple 2D game inspired by Terraria, currently being developed in C++.
 	- ⛏️ pickaxe 
 - 🐾 Enteties
 	- 🐰 Bunnies
+	- 🦔 Hedgehogs
 
 
 ## 🚀 Setup
@@ -61,8 +64,8 @@ His tutorials and resources were extremely helpful in getting started — highly
 - Clean up world genration (layered noise (octaves))
 - fix bug. "when player gets out of the map numbers of items float to the left"
 - fix bug. "can go throw blocks if on same axis"
-- fix bug. "alignment of tools, tool alignment gets weird when going left"
 - fix bug. "fix the collision jitter"
+- fix bug. "entities can jump up against trees??"
 - move items arount in inventory
 - Health
 - Mana
@@ -85,7 +88,8 @@ His tutorials and resources were extremely helpful in getting started — highly
 	- Only axe can destroy trees
 	- Can go through trees
 	- Trees drop planks depending on height and as items
-
+- Shoud be able to drop items
+- Player can organise items in inventory
 
 ## 📌 Notes
 This is a work in progress, and I'm actively developing new features.

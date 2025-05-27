@@ -16,6 +16,7 @@
 #include <worldGeneration.h>
 //#include <inventory.h>
 #include <entities.h>
+#include <utilities.h>
 
 using std::min;
 using std::max;
@@ -69,7 +70,7 @@ gl2d::Renderer2D renderer;
 gl2d::Texture playerTexture;
 gl2d::Texture bunnyTexture;
 //gl2d::Texture bunnyAtlasTexture;
-
+gl2d::Texture hedgehogTexture;
 
 gl2d::Texture pickaxeTexture;
 gl2d::Texture axeTexture;
@@ -92,7 +93,8 @@ bool initGame()
 	
 	playerTexture.loadFromFile(RESOURCES_PATH "entities/entity/Trent.png", true);
 	bunnyTexture.loadFromFile(RESOURCES_PATH "entities/entity/bunny.png", true);
-	
+	hedgehogTexture.loadFromFile(RESOURCES_PATH "entities/entity/hedgehog.png", true);
+
 	//bunnyAtlasTexture.loadFromFileWithPixelPadding(RESOURCES_PATH "entities/stitchedFiles/bunnySprite.png", 128, true);
 	//gl2d::TextureAtlasPadding bunnyAtlas(8, 1, bunnyAtlasTexture.GetSize().x, bunnyAtlasTexture.GetSize().y);
 
@@ -156,6 +158,7 @@ bool gameLogic(float deltaTime)
 	}
 
 	bunnySpawn(deltaTime,data.playerPos);
+	hedgehogSpawn(deltaTime, data.playerPos);
 
 #pragma region Movement
 	const float gravity = 500.0f;
@@ -202,67 +205,13 @@ bool gameLogic(float deltaTime)
 
 
 #pragma region Collision
-	data.isOnGround = false;
-
-	glm::vec4 playerRect = { data.playerPos.x, data.playerPos.y, data.size.x, data.size.y };
-
-	for (auto& block : blocks)
-	{
-		glm::vec4 blockRect = { block.position.x, block.position.y, block.size.x, block.size.y };
-
-		bool xOverlap = playerRect.x < blockRect.x + blockRect.z &&
-			playerRect.x + playerRect.z > blockRect.x;
-		bool yOverlap = playerRect.y < blockRect.y + blockRect.w &&
-			playerRect.y + playerRect.w > blockRect.y;
-
-		if (xOverlap && yOverlap)
-		{
-			// Calculate penetration depths
-			float fromLeft = (playerRect.x + playerRect.z) - blockRect.x;
-			float fromRight = (blockRect.x + blockRect.z) - playerRect.x;
-			float fromTop = (playerRect.y + playerRect.w) - blockRect.y;
-			float fromBottom = (blockRect.y + blockRect.w) - playerRect.y;
-
-			float minHoriz = min(fromLeft, fromRight);
-			float minVert = min(fromTop, fromBottom);
-
-			if (minHoriz < minVert)
-			{
-				// Horizontal collision
-				if (fromLeft < fromRight)
-				{
-					// Colliding from left
-					data.playerPos.x = blockRect.x - data.size.x;
-				}
-				else
-				{
-					// Colliding from right
-					data.playerPos.x = blockRect.x + blockRect.z;
-				}
-				data.velocity.x = 0;
-			}
-			else
-			{
-				// Vertical collision
-				if (fromTop < fromBottom)
-				{
-					// Colliding from above (landing)
-					data.playerPos.y = blockRect.y - data.size.y;
-					data.velocity.y = 0;
-					data.isOnGround = true;
-				}
-				else
-				{
-					// Colliding from below
-					data.playerPos.y = blockRect.y + blockRect.w;
-					data.velocity.y = 0;
-				}
-			}
-		}
-	}
+	// player 
+	Collision(data.playerPos, data.isOnGround, data.size, data.velocity);
 #pragma endregion
 
 	bunnyLogic(deltaTime, gravity, data.playerPos, jumpVelocity, blocks);
+
+	hedgehogLogic(deltaTime, gravity, data.playerPos, jumpVelocity, blocks);
 
 #pragma region Mouse Interaction
 	// Get the current mouse position relative to the window (screen space)
@@ -386,6 +335,7 @@ bool gameLogic(float deltaTime)
 
 	renderer.renderRectangle({ drawPos, drawSize }, playerTexture);
 
+	
 	for (auto& bunny : bunnies)
 	{
 		// render bunny
@@ -400,6 +350,25 @@ bool gameLogic(float deltaTime)
 
 		renderer.renderRectangle({ bunnyPos, bunnySize }, bunnyTexture);
 	}
+
+	// render hedgehog
+	for (auto& hedgehog : hedgehogs)
+	{
+		// render hedgehog
+		glm::vec2 hedgehogPos = hedgehog.position;
+		glm::vec2 hedgehogSize = hedgehog.Size;
+		// Flip the sprite horizontally if facing left
+		if (hedgehog.facing == FacingDirection::Left)
+		{
+			hedgehogPos.x += hedgehogSize.x; // move origin to the right side
+			hedgehogSize.x *= -1;         // flip horizontally
+		}
+
+		renderer.renderRectangle({ hedgehogPos, hedgehogSize }, hedgehogTexture);
+	}
+
+
+
 
 	// draw tools
 	// Render the tool in player's hand
