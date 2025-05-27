@@ -17,6 +17,7 @@ A simple 2D game inspired by Terraria, currently being developed in C++.
 	- 🕳️ Trees are walk throw have no collistion
 	- ⚒ Only axe can destroy trees
 	- 💥 Destroy one block and trees fell
+	- 2DPerlin noise and fractalPerlin noise added for cave generation
 - 🎒 Player inventory
 	- 🔄 Choose between items
 	- 📦 Store blocks

@@ -159,8 +159,8 @@ bool gameLogic(float deltaTime)
 		}
 	}
 
-	bunnySpawn(deltaTime,data.playerPos);
-	hedgehogSpawn(deltaTime, data.playerPos);
+	//bunnySpawn(deltaTime,data.playerPos);
+	//hedgehogSpawn(deltaTime, data.playerPos);
 
 #pragma region Movement
 	const float gravity = 500.0f;

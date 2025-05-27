@@ -11,7 +11,7 @@ using std::max;
 std::vector<Block> blocks;
 
 const int worldWidth = 100;
-const int worldHeight = 100;
+const int worldHeight = 200;
 const glm::vec2 blockSize = { 50.0f, 50.0f };
 const float blockStartY = 200.0f;
 
@@ -62,12 +62,65 @@ float perlin1D(float x) {
 	return lerp(grad(aa, xf), grad(ab, xf - 1), u);
 }
 
+
+
+float grad2D(int hash, float x, float y) {
+	switch (hash & 3) {
+	case 0: return  x + y;
+	case 1: return -x + y;
+	case 2: return  x - y;
+	case 3: return -x - y;
+	default: return 0;
+	}
+}
+
+float perlin2D(float x, float y) {
+	static int p[512];
+	static bool initialized = false;
+	if (!initialized) {
+		for (int i = 0; i < 256; ++i) p[i] = i;
+		for (int i = 0; i < 256; ++i) std::swap(p[i], p[rand() % 256]);
+		for (int i = 0; i < 256; ++i) p[256 + i] = p[i];
+		initialized = true;
+	}
+
+	int xi = static_cast<int>(floor(x)) & 255;
+	int yi = static_cast<int>(floor(y)) & 255;
+	float xf = x - floor(x);
+	float yf = y - floor(y);
+
+	float u = fade(xf);
+	float v = fade(yf);
+
+	int aa = p[p[xi] + yi];
+	int ab = p[p[xi] + yi + 1];
+	int ba = p[p[xi + 1] + yi];
+	int bb = p[p[xi + 1] + yi + 1];
+
+	float x1 = lerp(grad2D(aa, xf, yf), grad2D(ba, xf - 1, yf), u);
+	float x2 = lerp(grad2D(ab, xf, yf - 1), grad2D(bb, xf - 1, yf - 1), u);
+
+	return lerp(x1, x2, v);
+}
+
+float fractalPerlin(float x, float y, int octaves, float persistence = 0.5f) {
+	float total = 0, frequency = 1, amplitude = 1, maxValue = 0;
+	for (int i = 0; i < octaves; ++i) {
+		total += perlin2D(x * frequency, y * frequency) * amplitude;
+		maxValue += amplitude;
+		amplitude *= persistence;
+		frequency *= 2;
+	}
+	return total / maxValue;
+}
+
+
 void generateRandomWorld()
 {
 	blocks.clear();
 
-	int baseGround = 4;
-	int maxHillHeight = 6;
+	int baseGround = 100;
+	int maxHillHeight = 10;
 
 	float randomOffset = static_cast<float>(rand() % 100);
 
@@ -98,10 +151,18 @@ void generateRandomWorld()
 
 			if (y < columnHeight - 3)
 			{
-				if ((x * y + rand() % 5) % 17 == 0)
+				float nx = (x + randomOffset) * 0.08f;
+				float ny = y * 0.08f;
+
+				float caveNoise = fractalPerlin(nx, ny, 4, 0.5f);  // fractal noise
+				float depthFactor = static_cast<float>(y) / worldHeight;
+				float caveThreshold = 0.25f + depthFactor * 0.2f;
+
+				if (caveNoise > caveThreshold)
 				{
-					continue; // cave
+					continue; // empty block - part of cave
 				}
+
 				type = BlockType::Stone;
 			}
 			else if (y < columnHeight - 1)
