@@ -2,10 +2,6 @@
 #include <gl2d/gl2d.h>
 
 
-
-
-
-
 Block::Block(glm::vec2 pos, BlockType t)
     : position(pos), type(t)
 {
@@ -33,6 +29,9 @@ void Block::render(gl2d::Renderer2D &renderer) const
     case BlockType::Leaves:
         renderer.renderRectangle(leavesRect, LeavesTexture);
         break;
+    case BlockType::Chest:
+        renderer.renderRectangle(rect, tempTexture);
+        break;
     case BlockType::Custom:
     default:
         renderer.renderRectangle(rect, tempTexture);
@@ -49,6 +48,7 @@ std::string Block::getName() const
     case BlockType::Water: return "Water";
     case BlockType::Wood: return "Wood";
     case BlockType::Leaves: return "Leaves";
+    case BlockType::Chest: return "Chest";
     case BlockType::Custom: return "Custom";
     default: return "Unknown";
     }

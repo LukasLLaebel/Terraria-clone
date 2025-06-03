@@ -81,7 +81,6 @@ His tutorials and resources were extremely helpful in getting started — highly
 - block background
 - Crafting
 - Textures
-	- Leave texture
 - be able to safe game (safesave)
 - Multiplayer
 - Animations
@@ -90,6 +89,9 @@ His tutorials and resources were extremely helpful in getting started — highly
 - Shoud be able to drop items
 - Player can organise items in inventory
 - Optimise for lagging
+- Armor
+- Coins
+- Shaders
 
 ## 📌 Notes
 This is a work in progress, and I'm actively developing new features.

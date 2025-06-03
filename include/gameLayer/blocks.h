@@ -15,8 +15,9 @@ enum class BlockType
     Grass,
     Stone,
     Water,
-    Wood,     // for tree trunk and branches
-    Leaves,    // for tree foliage
+    Wood,     
+    Leaves,    
+    Chest,
     Custom
 
 };

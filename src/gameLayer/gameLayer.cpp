@@ -14,7 +14,7 @@
 #include <platformTools.h>
 #include <blocks.h>
 #include <worldGeneration.h>
-//#include <inventory.h>
+#include "UI.h"
 #include <entities.h>
 #include <utilities.h>
 
@@ -34,36 +34,6 @@ struct GameplayData
 //enum class FacingDirection { Left, Right };
 FacingDirection playerFacing = FacingDirection::Right;
 
-// Inventory structure and state
-constexpr int inventoryCols = 10;
-constexpr int totalInventoryRows = 5; // total including top row
-constexpr int persistentTopRows = 1;
-constexpr int inventoryRows = totalInventoryRows - persistentTopRows; // for toggled section
-constexpr int slotSize = 50;
-constexpr int slotPadding = 4;
-int selectedSlot = 0; // 0–9 (top inventory row)
-
-bool inventoryOpen = false;
-
-
-enum class ToolType {
-	None = -1,
-	Pickaxe = 100,
-	Axe,
-	Sword
-};
-
-struct InventorySlot
-{
-	bool occupied = false;
-	int itemID = -1;
-	int count = 0;
-	bool isTool = false;
-};
-
-
-
-std::vector<InventorySlot> inventory(inventoryCols* totalInventoryRows);
 gl2d::Font font;
 gl2d::Renderer2D renderer;
 
@@ -115,20 +85,17 @@ bool initGame()
 
 	//backgroundTexture.loadFromFile(RESOURCES_PATH "background/forrestBGMain.png", true);
 	
-	// items
-	inventory[0] = { true, static_cast<int>(ToolType::Pickaxe), 1, true };
-	inventory[1] = { true, static_cast<int>(ToolType::Axe), 1, true };
-	inventory[2] = { true, static_cast<int>(ToolType::Sword), 1, true };
-
+	// find this in UI
+	startItemsInventory();
 
 	return true;
 }
 
 bool gameLogic(float deltaTime)
 {
-	static float fps = 0.0f;
-	static float timeAccumulator = 0.0f;
-	static int frameCount = 0;
+	//static float fps = 0.0f;
+	//static float timeAccumulator = 0.0f;
+	//static int frameCount = 0;
 
 #pragma region Init
 	int w = platform::getFrameBufferSizeX();
@@ -145,25 +112,9 @@ bool gameLogic(float deltaTime)
 	{
 		generateRandomWorld(); // regenerate random world on G key press
 	}
-	// Toggle inventory
-	if (platform::isButtonPressedOn(platform::Button::Tab))
-	{
-		inventoryOpen = !inventoryOpen;
-	}
 
-
-	for (int i = 0; i < 9; ++i)
-	{
-		if (platform::isButtonPressedOn(platform::Button::NR1 + i % 9))
-		{
-			selectedSlot = i; // 0 to 8
-			break;
-		}
-		if (platform::isButtonPressedOn(platform::Button::NR0)) {
-			selectedSlot = 9;
-			break;
-		}
-	}
+	// find this in UI
+	handleInventoryInput();
 
 	//bunnySpawn(deltaTime,data.playerPos);
 	//hedgehogSpawn(deltaTime, data.playerPos);
@@ -212,12 +163,12 @@ bool gameLogic(float deltaTime)
 #pragma endregion
 
 
-	// player collision
+	// player collision (find this in utilities)
 	Collision(data.playerPos, data.isOnGround, data.size, data.velocity);
 
-	bunnyLogic(deltaTime, gravity, data.playerPos, jumpVelocity, blocks);
+	//bunnyLogic(deltaTime, gravity, data.playerPos, jumpVelocity, blocks);
 
-	hedgehogLogic(deltaTime, gravity, data.playerPos, jumpVelocity, blocks);
+	//hedgehogLogic(deltaTime, gravity, data.playerPos, jumpVelocity, blocks);
 
 #pragma region Mouse Interaction
 	// Get the current mouse position relative to the window (screen space)
@@ -230,216 +181,12 @@ bool gameLogic(float deltaTime)
 	// Snap the mouse position to the nearest 50x50 grid cell
 	glm::vec2 snappedMouse = glm::floor(worldMouse / 50.0f) * 50.0f;
 
-
-	InventorySlot& slot = inventory[selectedSlot];
-	// Place a new block at the snapped position if left mouse is pressed
-	if (platform::isLMousePressed())
-	{
-		bool exists = false;
-
-		// Check if a block already exists at this position
-		for (auto& b : blocks)
-		{
-			if (b.position == snappedMouse)
-			{
-				exists = true;
-				break;
-			}
-		}
-
-		// Only add the block if no existing block was found
-		if (!exists && slot.occupied && !slot.isTool && slot.count > 0)
-		{
-			// Check selected slot for block to place
-			InventorySlot& slot = inventory[selectedSlot];
-
-			if (slot.occupied && slot.count > 0)
-			{
-				blocks.emplace_back(snappedMouse, static_cast<BlockType>(slot.itemID));
-				slot.count--;
-
-				if (slot.count <= 0)
-				{
-					slot.occupied = false;
-					slot.itemID = -1;
-				}
-			}
-		}
-	}
-
-	// Destroy the block at the snapped position if right mouse is pressed
-	if (platform::isRMousePressed())
-	{
-		for (int i = 0; i < blocks.size(); ++i)
-		{
-			if (blocks[i].position == snappedMouse)
-			{
-				// LOS - Line of Sigt
-				bool isVisible = true;
-
-				glm::vec2 playerCenter = data.playerPos + glm::vec2(25.0f, 50.0f); // Center of player
-				glm::vec2 targetBlockCenter = blocks[i].position + glm::vec2(25.0f, 25.0f); // Center of block
-
-				glm::vec2 direction = glm::normalize(targetBlockCenter - playerCenter);
-				float distance = glm::distance(targetBlockCenter, playerCenter);
-				float step = 5.0f;
-
-				for (float d = 0.0f; d < distance; d += step)
-				{
-					glm::vec2 checkPos = playerCenter + direction * d;
-
-					for (const auto& otherBlock : blocks)
-					{
-						if (otherBlock.position == blocks[i].position) continue;
-
-						if (checkPos.x >= otherBlock.position.x && checkPos.x < otherBlock.position.x + 50.0f &&
-							checkPos.y >= otherBlock.position.y && checkPos.y < otherBlock.position.y + 50.0f)
-						{
-							isVisible = false;
-							break;
-						}
-					}
-
-					if (!isVisible)
-						break;
-				}
-
-				if (!isVisible)
-					break; // Exit early — block is not in line of sight
-
-
-
-
-				BlockType brokenType = blocks[i].type;
-				InventorySlot& heldSlot = inventory[selectedSlot];
-
-				// Check for correct tool requirements
-				if (brokenType == BlockType::Stone &&
-					!(heldSlot.occupied && heldSlot.isTool && heldSlot.itemID == static_cast<int>(ToolType::Pickaxe)))
-				{
-					break; // Needs pickaxe
-				}
-
-				if (brokenType == BlockType::Wood &&
-					!(heldSlot.occupied && heldSlot.isTool && heldSlot.itemID == static_cast<int>(ToolType::Axe)))
-				{
-					break; // Needs axe
-				}
-
-				if (brokenType == BlockType::Leaves)
-				{
-					break; // Don't allow breaking leaves directly
-				}
-
-				// Tree felling logic (wood block was broken)
-				if (brokenType == BlockType::Wood)
-				{
-					glm::vec2 currentPos = blocks[i].position;
-
-					while (true)
-					{
-						bool found = false;
-
-						for (int j = 0; j < blocks.size(); ++j)
-						{
-							if (blocks[j].position == currentPos &&
-								(blocks[j].type == BlockType::Wood || blocks[j].type == BlockType::Leaves))
-							{
-								BlockType typeToAdd = blocks[j].type;
-
-								// Remove the block
-								blocks.erase(blocks.begin() + j);
-
-								// Try to stack in inventory
-								bool added = false;
-								for (auto& slot : inventory)
-								{
-									if (slot.occupied && slot.itemID == static_cast<int>(typeToAdd))
-									{
-										slot.count++;
-										added = true;
-										break;
-									}
-								}
-								if (!added)
-								{
-									for (auto& slot : inventory)
-									{
-										if (!slot.occupied)
-										{
-											slot.occupied = true;
-											slot.itemID = static_cast<int>(typeToAdd);
-											slot.count = 1;
-											break;
-										}
-									}
-								}
-
-								found = true;
-								break; // Continue with next upward block
-							}
-						}
-
-						if (!found)
-							break;
-
-						currentPos.y -= 50.0f; // Move up
-					}
-					// because the leaves are not centered we center them in blocks.cpp
-					// because of that we need to look for the leaves when cutting down trees
-					glm::vec2 originalWoodPos = blocks[i].position;
-					// After destroying all wood blocks
-					for (int i = 0; i < blocks.size(); )
-					{
-						if (blocks[i].type == BlockType::Leaves)
-						{
-							glm::vec2 leafPos = blocks[i].position;
-							// Check distance to any destroyed wood block (or the original wood pos)
-							if (glm::distance(leafPos, originalWoodPos) < 5)
-							{
-								blocks.erase(blocks.begin() + i);
-								continue; // skip i increment
-							}
-						}
-						++i;
-					}
-				}
-				else
-				{
-					// Regular block breaking
-					BlockType typeToAdd = brokenType;
-					blocks.erase(blocks.begin() + i);
-
-					// Try stacking
-					bool added = false;
-					for (auto& slot : inventory)
-					{
-						if (slot.occupied && slot.itemID == static_cast<int>(typeToAdd))
-						{
-							slot.count++;
-							added = true;
-							break;
-						}
-					}
-					if (!added)
-					{
-						for (auto& slot : inventory)
-						{
-							if (!slot.occupied)
-							{
-								slot.occupied = true;
-								slot.itemID = static_cast<int>(typeToAdd);
-								slot.count = 1;
-								break;
-							}
-						}
-					}
-				}
-
-				break; // Only break one block or tree per click
-			}
-		}
-	}
+	InventorySlot& slot = getSelectedSlot();
+	
+	// find these in utilities
+	leftMouse(snappedMouse, slot);
+	rightMouse(snappedMouse, data.playerPos);
+	
 #pragma endregion
 	/*
 	// For debuging
@@ -583,85 +330,10 @@ bool gameLogic(float deltaTime)
 			renderer.renderRectangleOutline({ pos, slotSize, slotSize }, Colors_Yellow, 3.0f); // outline with 3px thickness
 		}
 
-
-		if (inventory[index].occupied)
-		{
-
-
-			// Choose the right texture instead of color
-			gl2d::Texture* blockTex = nullptr;
-			
-			//glm::vec4 color = inventory[index].isTool ? Colors_Orange : Colors_White;
-			switch (static_cast<BlockType>(inventory[index].itemID))
-			{
-			case BlockType::Grass: 
-				blockTex = &dirtTexture; 
-				break;
-			case BlockType::Stone: 
-				blockTex = &cobblestroneTexture; 
-				break;
-			case BlockType::Wood:
-				blockTex = &woodTexture;
-				break;
-			case BlockType::Water: 
-				blockTex = &tempTexture; 
-				break;
-			default: 
-				break;
-			}
-
-			gl2d::Texture* toolTex = nullptr;
-			switch (static_cast<ToolType>(inventory[index].itemID))
-			{
-			case ToolType::Pickaxe:
-				toolTex = &pickaxeTexture;
-				break;
-			case ToolType::Axe:
-				toolTex = &axeTexture;
-				break;
-			case ToolType::Sword:
-				toolTex = &swordTexture;
-				break;
-			default:
-				break;
-			}
-
-			// Render texture in inventory slot
-			if (blockTex)
-			{
-				renderer.renderRectangle(
-					{ pos + glm::vec2(8, 8), slotSize - 16, slotSize - 16 },
-					*blockTex
-				);
-			}
-			else if (toolTex)
-			{
-				renderer.renderRectangle(
-					{ pos + glm::vec2(8, 8), slotSize - 16, slotSize - 16 },
-					* toolTex
-				);
-			}
-
-
-			if (inventory[index].count > 1)
-			{
-				char countText[8];
-				snprintf(countText, sizeof(countText), "%d", inventory[index].count);
-
-				renderer.renderText(
-					pos + glm::vec2(4, 4),
-					countText,
-					font,
-					Colors_White,
-					0.6f,
-					0.0f,
-					0.0f
-				);
-			}
-		}
+		inventoryOccupied(renderer, index, font, pos);
 	}
 
-	// ---- Draw remaining inventory if open ----
+	// ---- Draw 4 bottom rows ----
 	if (inventoryOpen)
 	{
 		for (int row = 0; row < inventoryRows; ++row)
@@ -673,78 +345,7 @@ bool gameLogic(float deltaTime)
 
 				renderer.renderRectangle({ pos, slotSize, slotSize }, Colors_Gray);
 
-				if (inventory[index].occupied)
-				{
-					// Choose the right texture instead of color
-					gl2d::Texture* blockTex = nullptr;
-
-					//glm::vec4 color = inventory[index].isTool ? Colors_Orange : Colors_White;
-					switch (static_cast<BlockType>(inventory[index].itemID))
-					{
-					case BlockType::Grass:
-						blockTex = &dirtTexture;
-						break;
-					case BlockType::Stone:
-						blockTex = &cobblestroneTexture;
-						break;
-					case BlockType::Wood:
-						blockTex = &woodTexture;
-						break;
-					case BlockType::Water:
-						blockTex = &tempTexture;
-						break;
-					default:
-						break;
-					}
-
-					gl2d::Texture* toolTex = nullptr;
-					switch (static_cast<ToolType>(inventory[index].itemID))
-					{
-					case ToolType::Pickaxe:
-						toolTex = &pickaxeTexture;
-						break;
-					case ToolType::Axe:
-						toolTex = &axeTexture;
-						break;
-					case ToolType::Sword:
-						toolTex = &swordTexture;
-						break;
-					default:
-						break;
-					}
-
-					// Render texture in inventory slot
-					if (blockTex)
-					{
-						renderer.renderRectangle(
-							{ pos + glm::vec2(8, 8), slotSize - 16, slotSize - 16 },
-							*blockTex
-						);
-					}
-					else if (toolTex)
-					{
-						renderer.renderRectangle(
-							{ pos + glm::vec2(8, 8), slotSize - 16, slotSize - 16 },
-							*toolTex
-						);
-					}
-
-					if (inventory[index].count > 1)
-					{
-						char countText[8];
-						snprintf(countText, sizeof(countText), "%d", inventory[index].count);
-
-						renderer.renderText(
-							pos + glm::vec2(4, 4),
-							countText,
-							font,
-							Colors_White,
-							0.6f,
-							0.0f,
-							0.0f
-						);
-					}
-				}
+				inventoryOccupied(renderer, index, font, pos);
 			}
 		}
 	}
