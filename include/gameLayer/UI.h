@@ -50,5 +50,3 @@ void startItemsInventory();
 void handleInventoryInput();
 InventorySlot& getSelectedSlot();
 void inventoryOccupied(gl2d::Renderer2D& renderer, int index, gl2d::Font font, glm::vec2 pos);
-
-//void persistentInventory(gl2d::Renderer2D& renderer, glm::vec2 startPos, gl2d::Font font);

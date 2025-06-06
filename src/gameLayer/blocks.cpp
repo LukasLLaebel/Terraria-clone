@@ -30,7 +30,7 @@ void Block::render(gl2d::Renderer2D &renderer) const
         renderer.renderRectangle(leavesRect, LeavesTexture);
         break;
     case BlockType::Chest:
-        renderer.renderRectangle(rect, tempTexture);
+        renderer.renderRectangle(rect, chestTexture);
         break;
     case BlockType::Custom:
     default:
@@ -52,4 +52,9 @@ std::string Block::getName() const
     case BlockType::Custom: return "Custom";
     default: return "Unknown";
     }
+}
+
+void Block::onInteract()
+{
+    // Default: do nothing
 }

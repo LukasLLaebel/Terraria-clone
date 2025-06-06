@@ -12,6 +12,7 @@ void startItemsInventory()
     inventory[0] = { true, static_cast<int>(ToolType::Pickaxe), 1, true };
     inventory[1] = { true, static_cast<int>(ToolType::Axe), 1, true };
     inventory[2] = { true, static_cast<int>(ToolType::Sword), 1, true };
+	inventory[3] = { true, static_cast<int>(BlockType::Chest), 1, false };
 }
 
 void handleInventoryInput()
@@ -49,36 +50,21 @@ void inventoryOccupied(gl2d::Renderer2D& renderer, int index, gl2d::Font font, g
 		//glm::vec4 color = inventory[index].isTool ? Colors_Orange : Colors_White;
 		switch (static_cast<BlockType>(inventory[index].itemID))
 		{
-		case BlockType::Grass:
-			blockTex = &dirtTexture;
-			break;
-		case BlockType::Stone:
-			blockTex = &cobblestroneTexture;
-			break;
-		case BlockType::Wood:
-			blockTex = &woodTexture;
-			break;
-		case BlockType::Water:
-			blockTex = &tempTexture;
-			break;
-		default:
-			break;
+		case BlockType::Grass: blockTex = &dirtTexture; break;
+		case BlockType::Stone: blockTex = &cobblestroneTexture; break;
+		case BlockType::Wood:  blockTex = &woodTexture; break;
+		case BlockType::Water: blockTex = &tempTexture; break;
+		case BlockType::Chest: blockTex = &chestTexture; break;
+		default: break;
 		}
 
 		gl2d::Texture* toolTex = nullptr;
 		switch (static_cast<ToolType>(inventory[index].itemID))
 		{
-		case ToolType::Pickaxe:
-			toolTex = &pickaxeTexture;
-			break;
-		case ToolType::Axe:
-			toolTex = &axeTexture;
-			break;
-		case ToolType::Sword:
-			toolTex = &swordTexture;
-			break;
-		default:
-			break;
+		case ToolType::Pickaxe: toolTex = &pickaxeTexture; break;
+		case ToolType::Axe:     toolTex = &axeTexture; break;
+		case ToolType::Sword:   toolTex = &swordTexture; break;
+		default: break;
 		}
 
 		// Render texture in inventory slot

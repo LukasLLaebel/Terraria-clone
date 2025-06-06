@@ -51,7 +51,7 @@ gl2d::Texture cobblestroneTexture;
 gl2d::Texture woodTexture;
 gl2d::Texture LeavesTexture;
 gl2d::Texture tempTexture;
-
+gl2d::Texture chestTexture;
 
 //gl2d::Texture backgroundTexture;
 
@@ -79,6 +79,7 @@ bool initGame()
 	woodTexture.loadFromFile(RESOURCES_PATH "blocks/wood.png", true);
 	LeavesTexture.loadFromFile(RESOURCES_PATH "blocks/treeTop.png", true);
 	tempTexture.loadFromFile(RESOURCES_PATH "blocks/tempBlock.png", true);
+	chestTexture.loadFromFile(RESOURCES_PATH "blocks/interactive/DChest.png", true);
 
 	srand(static_cast<unsigned>(time(0))); // seed for random numbers
 	generateRandomWorld(); // generate the initial random world
